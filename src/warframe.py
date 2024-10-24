@@ -37,7 +37,7 @@ class WarframeAPI:
         return Profile(username=username, mr=mr, clan=clan)
 
     async def get_profile(self, username: str) -> Optional[Profile]:
-        url = f"https://content.warframe.com/dynamic/getProfileViewingData.php?n={urllib.parse.quote_plus(username.lower())}"
+        url = f"https://content.warframe.com/dynamic/getProfileViewingData.php?n={urllib.parse.quote_plus(username)}"
         response = await self.client.get(url)
         try:
             response.raise_for_status()

@@ -64,7 +64,7 @@ async def profile(ctx: discord.Interaction, username: str):
     # Clean the username to lower case and remove spaces
     username = username.lower().replace(" ", "")
     # Create a placeholder message to show that we are looking up the operator
-    await ctx.response.send_message(f"I'm looking up operator: `{username}` ...")
+    await ctx.response.send_message(f"I'm looking up operator: `{username}` ...", ephemeral=True) 
     # Make a request to the Warframe API to get the profile of the operator
     profile = await WARFRAME_API.get_profile(username)
     if profile:
