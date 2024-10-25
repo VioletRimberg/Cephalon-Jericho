@@ -21,7 +21,7 @@ tree = app_commands.CommandTree(client)
 TOKEN = environ.get("DISCORD_TOKEN")
 GUILD_ID = int (environ.get("GUILD_ID"))
 CLAN = environ.get("CLAN_NAME")
-
+REPORT_CH = int (environ.get("REPORT_CH"))
 WARFRAME_API = WarframeAPI()
 
 
@@ -86,10 +86,19 @@ async def profile(ctx: discord.Interaction, username: str):
 
 #Writing a report Modal
 class ReportModal(ui.Modal, title='Cephalon Jericho awaits your report...'):
-    name = ui.TextInput(label='Report Title')
-    answer = ui.TextInput(label='Report Summery', style=discord.TextStyle.paragraph)
+    title = ui.TextInput(label='Report Title', required=False, placeholder="Give your report a title")
+    message = ui.TextInput(label='Report Summery', style=discord.TextStyle.paragraph, placeholder="Input your report summery here")
 
     async def on_submit(self, interaction: discord.Interaction):
+        channel = interaction.guild.get_channel(REPORT_CH)
+        interaction.user = interaction.user
+        embed = discord.Embed(title="New Report", description=self.message.value, colour=discord.Colour.yellow())
+        embed.set_author(name=interaction.user.nick)
+        channel.send(embed=embed)
+        await channel.send(embed=embed)
+
+        await interaction.response.send_message(f'Redirection precepts nominal, I appreciate your submission Operator!', ephemeral=True)
+    async def on_error(self, interaction: discord.Interaction):
         await interaction.response.send_message(f'Redirection precepts nominal, I appreciate your submission Operator!', ephemeral=True)
 
 @tree.command(name="report", description="Task Cephalon Jericho with sending a report", guild=discord.Object(GUILD_ID))
