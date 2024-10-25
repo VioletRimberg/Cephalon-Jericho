@@ -1,6 +1,8 @@
 # This imports discord side api
 import discord
 from discord import app_commands
+from discord.ext import commands
+from discord import ui
 import random
 import httpx
 import urllib.parse
@@ -82,5 +84,17 @@ async def profile(ctx: discord.Interaction, username: str):
             content=f"Sorry i was not able to find any information for operator `{username}`!"
         )
 
+#Writing a report Modal
+class ReportModal(ui.Modal, title='Cephalon Jericho awaits your report...'):
+    name = ui.TextInput(label='Report Title')
+    answer = ui.TextInput(label='Report Summery', style=discord.TextStyle.paragraph)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f'Redirection precepts nominal, I appreciate your submission Operator!', ephemeral=True)
+
+@tree.command(name="report", description="Task Cephalon Jericho with sending a report", guild=discord.Object(GUILD_ID))
+async def feedback_command(interaction: discord.Interaction):
+    modal = ReportModal()
+    await interaction.response.send_modal(modal)
 
 client.run(TOKEN)
