@@ -86,20 +86,26 @@ async def profile(ctx: discord.Interaction, username: str):
 
 #Writing a report Modal
 class ReportModal(ui.Modal, title='Cephalon Jericho awaits your report...'):
-    title = ui.TextInput(label='Report Title', required=False, placeholder="Give your report a title")
-    message = ui.TextInput(label='Report Summery', style=discord.TextStyle.paragraph, placeholder="Input your report summery here")
+   
+    def __init__(self):
+        super().__init__(title='Cephalon Jericho awaits your report...')
+        self.title_input = ui.TextInput(label='Report Title', style=discord.TextStyle.short, placeholder="Give your report a title")
+        self.message_input = ui.TextInput(label='Report Summary', style=discord.TextStyle.paragraph, placeholder="Input your report summary here")
+        
+        self.add_item(self.title_input)
+        self.add_item(self.message_input)
 
     async def on_submit(self, interaction: discord.Interaction):
         channel = interaction.guild.get_channel(REPORT_CH)
-        interaction.user = interaction.user
-        embed = discord.Embed(title="New Report", description=self.message.value, colour=discord.Colour.yellow())
-        embed.set_author(name=interaction.user.nick)
-        channel.send(embed=embed)
+        report_title = self.title_input.value
+        report_summary = self.message_input.value
+        embed = discord.Embed(title=report_title, description=report_summary, colour=discord.Colour.yellow())
+        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
         await channel.send(embed=embed)
 
         await interaction.response.send_message(f'Redirection precepts nominal, I appreciate your submission Operator!', ephemeral=True)
     async def on_error(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f'Redirection precepts nominal, I appreciate your submission Operator!', ephemeral=True)
+        await interaction.response.send_message(f'Redirection precepts failed, please try again Operator!', ephemeral=True)
 
 @tree.command(name="report", description="Task Cephalon Jericho with sending a report", guild=discord.Object(GUILD_ID))
 async def feedback_command(interaction: discord.Interaction):
