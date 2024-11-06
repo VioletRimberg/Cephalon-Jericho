@@ -3,6 +3,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord import ui
+from discord import ButtonStyle
+from discord.ui import Button, View
 import random
 import httpx
 import urllib.parse
@@ -86,12 +88,12 @@ async def profile(ctx: discord.Interaction, username: str):
 
 #Writing a report Modal
 class ReportModal(ui.Modal, title='Cephalon Jericho awaits your report...'):
-   
+    #unlike what i originally had, i need to set input windows woopsies
     def __init__(self):
         super().__init__(title='Cephalon Jericho awaits your report...')
         self.title_input = ui.TextInput(label='Report Title', style=discord.TextStyle.short, placeholder="Give your report a title")
         self.message_input = ui.TextInput(label='Report Summary', style=discord.TextStyle.paragraph, placeholder="Input your report summary here")
-        
+        #and assign them to self, so that i can use them in the submit 
         self.add_item(self.title_input)
         self.add_item(self.message_input)
 
@@ -112,4 +114,64 @@ async def feedback_command(interaction: discord.Interaction):
     modal = ReportModal()
     await interaction.response.send_modal(modal)
 
+#writing role assign attempt 1, buttons
+
+@tree.command(
+        name="role", 
+        description="assign your role",
+        guild=discord.Object(GUILD_ID),)
+
+async def role(interaction: discord.Interaction):
+    role_1 = Button(label="Clan Member", style=ButtonStyle.primary, custom_id="role_1")
+    role_2 = Button(label="Guest", style=ButtonStyle.secondary, custom_id="role_2")
+    
+    view = View()
+    view.add_item(role_1)
+    view.add_item(role_2)
+
+    await interaction.response.send_message("Welcome to Golden Tenno! I'm Cephalon Jericho. Please select your role:", view=view)
+
+@client.event
+async def on_interaction(interaction: discord.Interaction):
+    if "custom_id" in interaction.data: 
+        if interaction.data["custom_id"] == "role_1":
+            await interaction.response.send_message(
+                "Thank you, Operator. Please input the command /profile and type your Warframe username in the given box for membership confirmation.",
+                ephemeral=True
+            )
+        elif interaction.data["custom_id"] == "role_2":
+            await interaction.response.send_message(
+                "Thank you, Operator. You have been cleared for entry.",
+                ephemeral=True
+            )
+
+@tree.command(
+        name="judge_jericho", 
+        description="Tell Jericho if he was a good Cephalon",
+        guild=discord.Object(GUILD_ID),)
+
+async def ask(interaction: discord.Interaction):
+    yes_button = Button(label="Yes", style=ButtonStyle.primary, custom_id="yes_button")
+    no_button = Button(label="No", style=ButtonStyle.secondary, custom_id="no_button")
+    
+    view = View()
+    view.add_item(yes_button)
+    view.add_item(no_button)
+
+    await interaction.response.send_message("Operator, have I been a good Cephalon?", view=view)
+
+@client.event
+async def on_interaction(interaction: discord.Interaction):
+    if "custom_id" in interaction.data: 
+        if interaction.data["custom_id"] == "yes_button":
+            await interaction.response.send_message(
+                "Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough.",
+                ephemeral=True
+            )
+        elif interaction.data["custom_id"] == "no_button":
+            await interaction.response.send_message(
+                "Why are you taking me outside, Operator? What are all these - oh by the great makers, no - this many? I am just, what - no!",
+                ephemeral=True
+            )
+        
 client.run(TOKEN)
