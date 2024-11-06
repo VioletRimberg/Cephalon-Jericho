@@ -118,6 +118,16 @@ async def feedback_command(interaction: discord.Interaction):
 
 #writing role assign attempt 1, buttons
 
+
+class RoleView(View):
+    def __init__(self, *, timeout=180):
+        super().__init__(timeout=timeout)
+
+    @discord.ui.button(label="Blurple Button",style=discord.ButtonStyle.blurple) # or .primary
+    async def blurple_button(self,button:discord.ui.Button,interaction:discord.Interaction):
+        button.disabled=True
+        await interaction.response.edit_message(view=self)
+
 @tree.command(
         name="role", 
         description="assign your role",
@@ -169,33 +179,32 @@ async def on_interaction(interaction: discord.Interaction):
             )
 
 
+class JudgeJerichoView(View):
+    def __init__(self, *, timeout=180):
+        super().__init__(timeout=timeout)
+
+    @discord.ui.button(label="Yes", style=ButtonStyle.primary)
+    async def pet_jericho(self,button:discord.ui.Button,interaction:discord.Interaction):
+        await interaction.response.send_message(
+                "Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough.",
+                ephemeral=True
+        )
+    
+    @discord.ui.button(label="Yes", style=ButtonStyle.primary)
+    async def kill_uhm_i_mean_dispose_jericho(self,button:discord.ui.Button,interaction:discord.Interaction):
+        await interaction.response.send_message(
+                "Why are you taking me outside, Operator? What are all these - oh by the great makers, no - this many? I am just, what - no!",
+                ephemeral=True
+        )
+
 @tree.command(
         name="judge_jericho", 
         description="Tell Jericho if he was a good Cephalon",
         guild=discord.Object(GUILD_ID),)
 
 async def ask(interaction: discord.Interaction):
-    yes_button = Button(label="Yes", style=ButtonStyle.primary, custom_id="yes_button")
-    no_button = Button(label="No", style=ButtonStyle.secondary, custom_id="no_button")
-    
-    view = View()
-    view.add_item(yes_button)
-    view.add_item(no_button)
-
+    view = JudgeJerichoView()
     await interaction.response.send_message("Operator, have I been a good Cephalon?", view=view)
-
-@client.event
-async def on_interaction(interaction: discord.Interaction):
-    if "custom_id" in interaction.data: 
-        if interaction.data["custom_id"] == "yes_button":
-            await interaction.response.send_message(
-                "Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough.",
-                ephemeral=True
-            )
-        elif interaction.data["custom_id"] == "no_button":
-            await interaction.response.send_message(
-                "Why are you taking me outside, Operator? What are all these - oh by the great makers, no - this many? I am just, what - no!",
-                ephemeral=True
-            )
+           
         
 client.run(TOKEN)
