@@ -24,6 +24,8 @@ TOKEN = environ.get("DISCORD_TOKEN")
 GUILD_ID = int (environ.get("GUILD_ID"))
 CLAN = environ.get("CLAN_NAME")
 REPORT_CH = int (environ.get("REPORT_CH"))
+ROLE_1_ID = int (environ.get("ROLE_1_ID"))
+ROLE_2_ID = int (environ.get("ROLE_2_ID"))
 WARFRAME_API = WarframeAPI()
 
 
@@ -133,17 +135,39 @@ async def role(interaction: discord.Interaction):
 
 @client.event
 async def on_interaction(interaction: discord.Interaction):
+    guild = interaction.guild 
+    member = interaction.user
+
     if "custom_id" in interaction.data: 
         if interaction.data["custom_id"] == "role_1":
-            await interaction.response.send_message(
-                "Thank you, Operator. Please input the command /profile and type your Warframe username in the given box for membership confirmation.",
-                ephemeral=True
-            )
+            role = guild.get_role(ROLE_1_ID)
+            #debugging
+            if role is None:
+                await interaction.response.send_message("The role could not be found. Please check the role ID.", ephemeral=True)
+            else:
+                await member.add_roles(role)
+            #debugging with try to catch errors hopefully
+            try:
+                print(f"Assigning role to {member.name} ({member.id})")
+                print(f"Role to assign: {role.name} ({role.id})")
+
+                await member.add_roles(role)
+                await interaction.response.send_message(
+                    "Thank you, Operator. Please input the command /profile and type your Warframe username in the given box for membership confirmation.",
+                     ephemeral=True
+                )
+            except discord.Forbidden:
+                await interaction.response.send_message("I don't have permission to assign this role.", ephemeral=True)
+            except discord.HTTPException as e:
+                await interaction.response.send_message(f"Failed to assign role due to an error: {e}", ephemeral=True)
         elif interaction.data["custom_id"] == "role_2":
+            role = guild.get_role(ROLE_2_ID)
+            await member.add_roles(role) 
             await interaction.response.send_message(
                 "Thank you, Operator. You have been cleared for entry.",
                 ephemeral=True
             )
+
 
 @tree.command(
         name="judge_jericho", 
