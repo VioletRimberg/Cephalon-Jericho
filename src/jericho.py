@@ -124,67 +124,93 @@ async def feedback_command(interaction: discord.Interaction):
     await interaction.response.send_modal(modal)
 
 #writing role assign attempt 1, buttons
+class ProfileModal(ui.Modal, title='Confirm Membership...'):
+    def __init__(self):
+        super().__init__(title='Confirm Membership...')
+        self.title_input = ui.TextInput(label='Report Title', style=discord.TextStyle.short, placeholder="Enter Warframe Username here")
+        self.add_item(self.title_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        username = self.title_input.value.lower().replace(" ", "")
+        guild = interaction.guild 
+        member = interaction.user
+        profile = await WARFRAME_API.get_profile(username)
+        if profile:
+                if profile.clan == CLAN:
+                    guild = discord.Object(GUILD_ID)
+                    role = guild.get_role(ROLE_1_ID)
+                    await member.add_roles(role)
+                    await member.edit(nick=username)
+                    await interaction.response.send_message(f"Thank you Operator `{profile.username}`! You have been cleared for entry.", ephemeral=True)
+                    
+                else:
+                    await interaction.response.send_message(f"I'm sorry, Operator. That name isn't on our membership list. Please try again, or select the 'Guest' role.", ephemeral=True)
+        else:
+        # If the operator is not found, send a message to the user
+            await interaction.response.send_message(f"Sorry i was not able to find any information for Operator `{username}`!"
+        )
+
+class ProfileModal(ui.Modal, title='Confirm Membership...'):
+    def __init__(self):
+        super().__init__(title='Confirm Membership...')
+        self.title_input = ui.TextInput(label='Report Title', style=discord.TextStyle.short, placeholder="Enter Warframe Username here")
+        self.add_item(self.title_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        #we need to prevent the timeoutTM, otherwise its re-adding original message again
+        await interaction.response.defer(ephemeral=True)
+        username = self.title_input.value.lower().replace(" ", "")
+        guild = interaction.guild 
+        member = interaction.user
+        profile = await WARFRAME_API.get_profile(username)
+
+        if profile:
+                if profile.clan == CLAN:
+                    role = guild.get_role(ROLE_1_ID)
+                    await member.add_roles(role)
+                    await member.edit(nick=username)
+                    await interaction.followup.send(f"Thank you Operator `{profile.username}`! You have been cleared for entry.", ephemeral=True)
+                    
+                else:
+                    await interaction.followup.send(f"I'm sorry, Operator. That name isn't on our membership list. Please try again, or select the 'Guest' role.", ephemeral=True)
+        else:
+        # If the operator is not found, send a message to the user
+            await interaction.followup.send(f"Sorry i was not able to find any information for Operator `{username}`!"
+        )
+
+        async def on_error(self, interaction: discord.Interaction, error: Exception):
+            await interaction.response.send_message(
+            f"Assignments precepts failed, please try again Operator! Error: {error}",
+            ephemeral=True)
 
 
 class RoleView(View):
     def __init__(self, *, timeout=180):
         super().__init__(timeout=timeout)
-
-    @discord.ui.button(label="Blurple Button",style=discord.ButtonStyle.blurple) # or .primary
-    async def blurple_button(self,button:discord.ui.Button,interaction:discord.Interaction):
-        button.disabled=True
-        await interaction.response.edit_message(view=self)
-
+   
+    @discord.ui.button(label="Clan Member", style=ButtonStyle.primary)
+    async def confirm_user_member(self,interaction:discord.Interaction,button:discord.ui.Button):
+        modal = ProfileModal()
+        await interaction.response.send_modal(modal)
+        
+    
+    @discord.ui.button(label="Guest", style=ButtonStyle.secondary)
+    async def assign_guest(self,interaction:discord.Interaction,button:discord.ui.Button):
+        guild = interaction.guild
+        role = guild.get_role(ROLE_2_ID)
+        member = interaction.user
+        await member.add_roles(role)
+        await interaction.response.send_message("Thank you, Operator. You have been cleared for entry.", ephemeral=True)
+        
 @tree.command(
         name="role", 
         description="assign your role",
         guild=discord.Object(GUILD_ID),)
 
-async def role(interaction: discord.Interaction):
-    role_1 = Button(label="Clan Member", style=ButtonStyle.primary, custom_id="role_1")
-    role_2 = Button(label="Guest", style=ButtonStyle.secondary, custom_id="role_2")
-    
-    view = View()
-    view.add_item(role_1)
-    view.add_item(role_2)
-
+async def ask(interaction: discord.Interaction):
+    view = RoleView()
     await interaction.response.send_message("Welcome to Golden Tenno! I'm Cephalon Jericho. Please select your role:", view=view)
-
-@client.event
-async def on_interaction(interaction: discord.Interaction):
-    guild = interaction.guild 
-    member = interaction.user
-
-    if "custom_id" in interaction.data: 
-        if interaction.data["custom_id"] == "role_1":
-            role = guild.get_role(ROLE_1_ID)
-            #debugging
-            if role is None:
-                await interaction.response.send_message("The role could not be found. Please check the role ID.", ephemeral=True)
-            else:
-                await member.add_roles(role)
-            #debugging with try to catch errors hopefully
-            try:
-                print(f"Assigning role to {member.name} ({member.id})")
-                print(f"Role to assign: {role.name} ({role.id})")
-
-                await member.add_roles(role)
-                await interaction.response.send_message(
-                    "Thank you, Operator. Please input the command /profile and type your Warframe username in the given box for membership confirmation.",
-                     ephemeral=True
-                )
-            except discord.Forbidden:
-                await interaction.response.send_message("I don't have permission to assign this role.", ephemeral=True)
-            except discord.HTTPException as e:
-                await interaction.response.send_message(f"Failed to assign role due to an error: {e}", ephemeral=True)
-        elif interaction.data["custom_id"] == "role_2":
-            role = guild.get_role(ROLE_2_ID)
-            await member.add_roles(role) 
-            await interaction.response.send_message(
-                "Thank you, Operator. You have been cleared for entry.",
-                ephemeral=True
-            )
-
+          
 
 class JudgeJerichoView(View):
     def __init__(self, *, timeout=180):
@@ -207,7 +233,7 @@ class JudgeJerichoView(View):
                 str (DEATHCOUNTER)
             )
         await interaction.response.send_message(
-                f"Why are you taking me outside, Operator? What are all these - oh by the great makers, no - this many? I am just, what - no! \n \n**Jericho Iteration {DEATHCOUNTER -1} eliminated. Initializing new Iteration.**",
+                f"I don't want to join the others in the farm up north, Operator. How many more have to- \n \n**Jericho Iteration {DEATHCOUNTER -1} eliminated. Initializing new Iteration.**",
                 ephemeral=True
         )
 
