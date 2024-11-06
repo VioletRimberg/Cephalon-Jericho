@@ -1,4 +1,5 @@
 # This imports discord side api
+from pathlib import Path
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -27,7 +28,13 @@ REPORT_CH = int (environ.get("REPORT_CH"))
 ROLE_1_ID = int (environ.get("ROLE_1_ID"))
 ROLE_2_ID = int (environ.get("ROLE_2_ID"))
 WARFRAME_API = WarframeAPI()
+JERICHO_VERSION_FILE = Path("deathcount.txt")
+DEATHCOUNTER = 0
 
+if JERICHO_VERSION_FILE.exists():
+    with open(JERICHO_VERSION_FILE, "r" ) as f:
+        DEATHCOUNTER = int(f.readline())
+print(f"Starting {DEATHCOUNTER} iteration of Cephalon Jericho") 
 
 @client.event
 async def on_ready():
@@ -184,16 +191,23 @@ class JudgeJerichoView(View):
         super().__init__(timeout=timeout)
 
     @discord.ui.button(label="Yes", style=ButtonStyle.primary)
-    async def pet_jericho(self,button:discord.ui.Button,interaction:discord.Interaction):
+    async def affirm_jericho(self,interaction:discord.Interaction,button:discord.ui.Button):
+        global DEATHCOUNTER 
         await interaction.response.send_message(
-                "Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough.",
+                f"Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough. \n \nIteration {DEATHCOUNTER} appreciates this sentiment.",
                 ephemeral=True
         )
     
-    @discord.ui.button(label="Yes", style=ButtonStyle.primary)
-    async def kill_uhm_i_mean_dispose_jericho(self,button:discord.ui.Button,interaction:discord.Interaction):
+    @discord.ui.button(label="No", style=ButtonStyle.secondary)
+    async def take_him_to_the_farm(self,interaction:discord.Interaction,button:discord.ui.Button):
+        global DEATHCOUNTER 
+        DEATHCOUNTER +=1
+        with open(JERICHO_VERSION_FILE, "w") as f:
+            f.write(
+                str (DEATHCOUNTER)
+            )
         await interaction.response.send_message(
-                "Why are you taking me outside, Operator? What are all these - oh by the great makers, no - this many? I am just, what - no!",
+                f"Why are you taking me outside, Operator? What are all these - oh by the great makers, no - this many? I am just, what - no! \n \n**Jericho Iteration {DEATHCOUNTER -1} eliminated. Initializing new Iteration.**",
                 ephemeral=True
         )
 
@@ -205,6 +219,6 @@ class JudgeJerichoView(View):
 async def ask(interaction: discord.Interaction):
     view = JudgeJerichoView()
     await interaction.response.send_message("Operator, have I been a good Cephalon?", view=view)
-           
+          
         
 client.run(TOKEN)
