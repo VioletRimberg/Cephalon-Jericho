@@ -123,33 +123,6 @@ async def feedback_command(interaction: discord.Interaction):
     modal = ReportModal()
     await interaction.response.send_modal(modal)
 
-#writing role assign attempt 1, buttons
-class ProfileModal(ui.Modal, title='Confirm Membership...'):
-    def __init__(self):
-        super().__init__(title='Confirm Membership...')
-        self.title_input = ui.TextInput(label='Report Title', style=discord.TextStyle.short, placeholder="Enter Warframe Username here")
-        self.add_item(self.title_input)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        username = self.title_input.value.lower().replace(" ", "")
-        guild = interaction.guild 
-        member = interaction.user
-        profile = await WARFRAME_API.get_profile(username)
-        if profile:
-                if profile.clan == CLAN:
-                    guild = discord.Object(GUILD_ID)
-                    role = guild.get_role(ROLE_1_ID)
-                    await member.add_roles(role)
-                    await member.edit(nick=username)
-                    await interaction.response.send_message(f"Thank you Operator `{profile.username}`! You have been cleared for entry.", ephemeral=True)
-                    
-                else:
-                    await interaction.response.send_message(f"I'm sorry, Operator. That name isn't on our membership list. Please try again, or select the 'Guest' role.", ephemeral=True)
-        else:
-        # If the operator is not found, send a message to the user
-            await interaction.response.send_message(f"Sorry i was not able to find any information for Operator `{username}`!"
-        )
-
 class ProfileModal(ui.Modal, title='Confirm Membership...'):
     def __init__(self):
         super().__init__(title='Confirm Membership...')
