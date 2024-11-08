@@ -9,6 +9,8 @@ import random
 from os import environ
 from warframe import WarframeAPI
 from dotenv import load_dotenv 
+import logging
+from logging import warn, error, info
 
 load_dotenv()
 
@@ -217,4 +219,8 @@ async def judge_jericho(interaction: discord.Interaction):
     await interaction.response.send_message("Operator, have I been a good Cephalon?", view=view)
           
         
-client.run(TOKEN)
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    info("Starting Cephalon Jericho")
+    client.run(TOKEN)
+
