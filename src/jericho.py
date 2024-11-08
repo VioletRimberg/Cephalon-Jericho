@@ -1,4 +1,4 @@
-# This imports discord side api
+from dynaconf import Dynaconf
 from pathlib import Path
 import discord
 from discord import app_commands
@@ -12,20 +12,22 @@ from dotenv import load_dotenv
 import logging
 from logging import warn, error, info
 
-load_dotenv()
+class Settings:
+    DISCORD_TOKEN: str
+    GUILD_ID: int
+    CLAN_NAME: str
+    REPORT_CH: int
+    ROLE_1_ID: int
+    ROLE_2_ID: int
 
-intents = discord.Intents.default()
+settings:Settings = Dynaconf(
+    settings_files=['settings.toml', '.env'],
+    environments=True,
+    envvar_prefix=None,
+    settings_cls=Settings,
+    load_dotenv=True,
+)
 
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
-
-# This is the Token and Server ID
-TOKEN = environ.get("DISCORD_TOKEN")
-GUILD_ID = int (environ.get("GUILD_ID"))
-CLAN = environ.get("CLAN_NAME")
-REPORT_CH = int (environ.get("REPORT_CH"))
-ROLE_1_ID = int (environ.get("ROLE_1_ID"))
-ROLE_2_ID = int (environ.get("ROLE_2_ID"))
 WARFRAME_API = WarframeAPI()
 JERICHO_VERSION_FILE = Path("deathcount.txt")
 DEATHCOUNTER = 0
@@ -35,14 +37,18 @@ if JERICHO_VERSION_FILE.exists():
         DEATHCOUNTER = int(f.readline())
 print(f"Starting {DEATHCOUNTER} iteration of Cephalon Jericho") 
 
+intents = discord.Intents.default()
+
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
+
 @client.event
 async def on_ready():
-    await tree.sync(guild=discord.Object(id=GUILD_ID))
+    await tree.sync(guild=discord.Object(id=settings.GUILD_ID))
     print(f"Logged in as {client.user}!")
 
-
 @tree.command(
-    name="hello", description="A simple hello function", guild=discord.Object(GUILD_ID)
+    name="hello", description="A simple hello function", guild=discord.Object(settings.GUILD_ID)
 )
 async def hello(ctx):
     await ctx.response.send_message(
@@ -50,7 +56,7 @@ async def hello(ctx):
     )
 
 
-@tree.command(name="koumei", description="Roll a dice", guild=discord.Object(GUILD_ID))
+@tree.command(name="koumei", description="Roll a dice", guild=discord.Object(settings.GUILD_ID))
 async def koumei(ctx):
     random_number = random.randint(1, 6)
     if random_number == 6:
@@ -70,7 +76,7 @@ async def koumei(ctx):
 @tree.command(
     name="profile",
     description="Query a warframe profile",
-    guild=discord.Object(GUILD_ID),
+    guild=discord.Object(settings.GUILD_ID),
 )
 async def profile(ctx: discord.Interaction, username: str):
     # Clean the username to lower case and remove spaces
@@ -80,7 +86,7 @@ async def profile(ctx: discord.Interaction, username: str):
     # Make a request to the Warframe API to get the profile of the operator
     profile = await WARFRAME_API.get_profile(username)
     if profile:
-        if profile.clan == CLAN:
+        if profile.clan == settings.CLAN:
             await ctx.edit_original_response(
                 content=f"Operator: `{profile.username}` , Mastery Rank: `{profile.mr}` \nProud member of Golden Tenno 🫡"
             )
@@ -106,7 +112,7 @@ class ReportModal(ui.Modal, title='Cephalon Jericho awaits your report...'):
         self.add_item(self.message_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        channel = interaction.guild.get_channel(REPORT_CH)
+        channel = interaction.guild.get_channel(settings.REPORT_CH)
         report_title = self.title_input.value
         report_summary = self.message_input.value
         embed = discord.Embed(title=report_title, description=report_summary, colour=discord.Colour.yellow())
@@ -117,7 +123,7 @@ class ReportModal(ui.Modal, title='Cephalon Jericho awaits your report...'):
     async def on_error(self, interaction: discord.Interaction):
         await interaction.response.send_message(f'Redirection precepts failed, please try again Operator!', ephemeral=True)
 
-@tree.command(name="report", description="Task Cephalon Jericho with sending a report", guild=discord.Object(GUILD_ID))
+@tree.command(name="report", description="Task Cephalon Jericho with sending a report", guild=discord.Object(settings.GUILD_ID))
 async def feedback_command(interaction: discord.Interaction):
     modal = ReportModal()
     await interaction.response.send_modal(modal)
@@ -137,8 +143,8 @@ class ProfileModal(ui.Modal, title='Confirm Membership...'):
         profile = await WARFRAME_API.get_profile(username)
 
         if profile:
-                if profile.clan == CLAN:
-                    role = guild.get_role(ROLE_1_ID)
+                if profile.clan == settings.CLAN:
+                    role = guild.get_role(settings.ROLE_1_ID)
                     await member.add_roles(role)
                     await member.edit(nick=username)
                     await interaction.followup.send(f"Thank you Operator `{profile.username}`! You have been cleared for entry.", ephemeral=True)
@@ -169,7 +175,7 @@ class RoleView(View):
     @discord.ui.button(label="Guest", style=ButtonStyle.secondary)
     async def assign_guest(self,interaction:discord.Interaction,button:discord.ui.Button):
         guild = interaction.guild
-        role = guild.get_role(ROLE_2_ID)
+        role = guild.get_role(settings.ROLE_2_ID)
         member = interaction.user
         await member.add_roles(role)
         await interaction.response.send_message("Thank you, Operator. You have been cleared for entry.", ephemeral=True)
@@ -177,7 +183,7 @@ class RoleView(View):
 @tree.command(
         name="role", 
         description="assign your role",
-        guild=discord.Object(GUILD_ID),)
+        guild=discord.Object(settings.GUILD_ID),)
 
 async def role(interaction: discord.Interaction):
     view = RoleView()
@@ -212,7 +218,7 @@ class JudgeJerichoView(View):
 @tree.command(
         name="judge_jericho", 
         description="Tell Jericho if he was a good Cephalon",
-        guild=discord.Object(GUILD_ID),)
+        guild=discord.Object(settings.GUILD_ID),)
 
 async def judge_jericho(interaction: discord.Interaction):
     view = JudgeJerichoView()
@@ -222,5 +228,5 @@ async def judge_jericho(interaction: discord.Interaction):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     info("Starting Cephalon Jericho")
-    client.run(TOKEN)
+    client.run(settings.TOKEN)
 
