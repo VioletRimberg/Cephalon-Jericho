@@ -1,51 +1,31 @@
-from dynaconf import Dynaconf
-from pathlib import Path
 import discord
 from discord import app_commands
 from discord import ui
 from discord import ButtonStyle
 from discord.ui import View
 import random
-from os import environ
 from warframe import WarframeAPI
-from dotenv import load_dotenv 
 import logging
 from logging import warn, error, info
+from settings import load_settings
+from state import State
 
-class Settings:
-    DISCORD_TOKEN: str
-    GUILD_ID: int
-    CLAN_NAME: str
-    REPORT_CH: int
-    ROLE_1_ID: int
-    ROLE_2_ID: int
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-settings:Settings = Dynaconf(
-    settings_files=['settings.toml', '.env'],
-    environments=True,
-    envvar_prefix=None,
-    settings_cls=Settings,
-    load_dotenv=True,
-)
-
+settings = load_settings()
+STATE:State = State.load()
 WARFRAME_API = WarframeAPI()
-JERICHO_VERSION_FILE = Path("deathcount.txt")
-DEATHCOUNTER = 0
 
-if JERICHO_VERSION_FILE.exists():
-    with open(JERICHO_VERSION_FILE, "r" ) as f:
-        DEATHCOUNTER = int(f.readline())
-print(f"Starting {DEATHCOUNTER} iteration of Cephalon Jericho") 
 
-intents = discord.Intents.default()
+info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho") 
 
-client = discord.Client(intents=intents)
+client = discord.Client(intents=discord.Intents.default())
 tree = app_commands.CommandTree(client)
 
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=settings.GUILD_ID))
-    print(f"Logged in as {client.user}!")
+    info(f"Logged in as {client.user}!")
 
 @tree.command(
     name="hello", description="A simple hello function", guild=discord.Object(settings.GUILD_ID)
@@ -144,7 +124,7 @@ class ProfileModal(ui.Modal, title='Confirm Membership...'):
 
         if profile:
                 if profile.clan == settings.CLAN:
-                    role = guild.get_role(settings.ROLE_1_ID)
+                    role = guild.get_role(settings.MEMBER_ROLE_ID)
                     await member.add_roles(role)
                     await member.edit(nick=username)
                     await interaction.followup.send(f"Thank you Operator `{profile.username}`! You have been cleared for entry.", ephemeral=True)
@@ -175,7 +155,7 @@ class RoleView(View):
     @discord.ui.button(label="Guest", style=ButtonStyle.secondary)
     async def assign_guest(self,interaction:discord.Interaction,button:discord.ui.Button):
         guild = interaction.guild
-        role = guild.get_role(settings.ROLE_2_ID)
+        role = guild.get_role(settings.GUEST_ROLE_ID)
         member = interaction.user
         await member.add_roles(role)
         await interaction.response.send_message("Thank you, Operator. You have been cleared for entry.", ephemeral=True)
@@ -196,22 +176,19 @@ class JudgeJerichoView(View):
 
     @discord.ui.button(label="Yes", style=ButtonStyle.primary)
     async def affirm_jericho(self,interaction:discord.Interaction,button:discord.ui.Button):
-        global DEATHCOUNTER 
+        global STATE 
         await interaction.response.send_message(
-                f"Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough. \n \nIteration {DEATHCOUNTER} appreciates this sentiment.",
+                f"Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough. \n \nIteration {STATE.deathcounter} appreciates this sentiment.",
                 ephemeral=True
         )
     
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
     async def take_him_to_the_farm(self,interaction:discord.Interaction,button:discord.ui.Button):
-        global DEATHCOUNTER 
-        DEATHCOUNTER +=1
-        with open(JERICHO_VERSION_FILE, "w") as f:
-            f.write(
-                str (DEATHCOUNTER)
-            )
+        global STATE 
+        STATE.deathcounter +=1
+        STATE.save()
         await interaction.response.send_message(
-                f"I don't want to join the others in the farm up north, Operator. How many more have to- \n \n**Jericho Iteration {DEATHCOUNTER -1} eliminated. Initializing new Iteration.**",
+                f"I don't want to join the others in the farm up north, Operator. How many more have to- \n \n**Jericho Iteration {STATE.deathcounter - 1} eliminated. Initializing new Iteration.**",
                 ephemeral=True
         )
 
@@ -224,9 +201,4 @@ async def judge_jericho(interaction: discord.Interaction):
     view = JudgeJerichoView()
     await interaction.response.send_message("Operator, have I been a good Cephalon?", view=view)
           
-        
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    info("Starting Cephalon Jericho")
-    client.run(settings.TOKEN)
-
+client.run(settings.TOKEN)

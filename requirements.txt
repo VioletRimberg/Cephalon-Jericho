@@ -1,3 +1,4 @@
 httpx
 discord.py
 dynaconf
+pydantic

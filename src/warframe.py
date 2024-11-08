@@ -47,13 +47,13 @@ class WarframeAPI:
         return None
 
 
-async def main():
-    api = WarframeAPI()
-    profile = await api.get_profile("LLukas22")
-    print(profile)  # Print the profile data
+
 
 
 if __name__ == "__main__":
     import asyncio
-
+    async def main():
+        api = WarframeAPI()
+        profile = await api.get_profile("LLukas22")
+        print(profile)  # Print the profile data    
     asyncio.run(main())
