@@ -23,13 +23,15 @@ def load_settings()->Settings:
     """
     Load settings from settings.toml and .env files.
     """
-    settings:Settings = Dynaconf(
+    settings_loader = Dynaconf(
         settings_files=['settings.toml', '.env'],
         environments=True,
         envvar_prefix="",
-        settings_cls=Settings,
         load_dotenv=True,
     )
+
+    settings = Settings()
+    settings_loader.populate_obj(settings)
     return settings
 
     
