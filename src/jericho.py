@@ -2,13 +2,10 @@
 from pathlib import Path
 import discord
 from discord import app_commands
-from discord.ext import commands
 from discord import ui
 from discord import ButtonStyle
-from discord.ui import Button, View
+from discord.ui import View
 import random
-import httpx
-import urllib.parse
 from os import environ
 from warframe import WarframeAPI
 from dotenv import load_dotenv 
@@ -180,7 +177,7 @@ class RoleView(View):
         description="assign your role",
         guild=discord.Object(GUILD_ID),)
 
-async def ask(interaction: discord.Interaction):
+async def role(interaction: discord.Interaction):
     view = RoleView()
     await interaction.response.send_message("Welcome to Golden Tenno! I'm Cephalon Jericho. Please select your role:", view=view)
           
@@ -215,7 +212,7 @@ class JudgeJerichoView(View):
         description="Tell Jericho if he was a good Cephalon",
         guild=discord.Object(GUILD_ID),)
 
-async def ask(interaction: discord.Interaction):
+async def judge_jericho(interaction: discord.Interaction):
     view = JudgeJerichoView()
     await interaction.response.send_message("Operator, have I been a good Cephalon?", view=view)
           
