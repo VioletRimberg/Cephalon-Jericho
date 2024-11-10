@@ -1,37 +1,24 @@
-from dynaconf import Dynaconf
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class Settings:
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False
+    )
     # The token used to authenticate with the Discord API
     DISCORD_TOKEN: str
-    
+
     # The ID of the Discord guild (server) the bot will operate in
     GUILD_ID: int
-    
+
     # The name of the clan associated with the bot
     CLAN_NAME: str
-    
+
     # The ID of the channel where reports will be sent
-    REPORT_CH: int
-    
+    REPORT_CHANNEL_ID: int
+
     # The ID of the role assigned to members of the clan
     MEMBER_ROLE_ID: int
-    
+
     # The ID of the role assigned to guests
     GUEST_ROLE_ID: int
-
-def load_settings()->Settings:
-    """
-    Load settings from settings.toml and .env files.
-    """
-    settings_loader = Dynaconf(
-        settings_files=['settings.toml', '.env'],
-        environments=True,
-        envvar_prefix="",
-        load_dotenv=True,
-    )
-
-    settings = Settings()
-    settings_loader.populate_obj(settings)
-    return settings
-
-    

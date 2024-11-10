@@ -4,12 +4,13 @@ from pathlib import Path
 
 JERICHO_STATE_FILE = Path("state.json")
 
+
 class State(BaseModel):
     # How many times Jericho has been "reset"
     deathcounter: int = 0
 
     @classmethod
-    def load(cls)->"State":
+    def load(cls) -> "State":
         """
         Load the state from the state file.
         """

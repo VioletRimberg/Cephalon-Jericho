@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 import logging
 
+
 @dataclass
 class Profile:
     """
@@ -24,6 +25,7 @@ class WarframeAPI:
     """
     Class to interface with the Warframe API.
     """
+
     def __init__(self, timeout: int = 5_000):
         self.client = httpx.AsyncClient(timeout=timeout)  # Initialize the HTTP client
 
@@ -43,17 +45,16 @@ class WarframeAPI:
             response.raise_for_status()
             return self._parse_profile(response.json())
         except httpx.HTTPError as e:
-            logging.error(f"Failed to get profile `{username}`: {e}") 
+            logging.error(f"Failed to get profile `{username}`: {e}")
         return None
-
-
-
 
 
 if __name__ == "__main__":
     import asyncio
+
     async def main():
         api = WarframeAPI()
         profile = await api.get_profile("LLukas22")
-        print(profile)  # Print the profile data    
+        print(profile)  # Print the profile data
+
     asyncio.run(main())
