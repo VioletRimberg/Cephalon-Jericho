@@ -5,14 +5,11 @@ from discord import ButtonStyle
 from discord.ui import View
 import random
 from warframe import WarframeAPI
-import logging
 from logging import warn, error, info
 from settings import Settings
 from state import State
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+discord.utils.setup_logging()
 
 SETTINGS = Settings()
 STATE: State = State.load()
