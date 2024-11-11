@@ -1,5 +1,4 @@
 httpx
 discord.py
-dynaconf
 pydantic
 pydantic-settings

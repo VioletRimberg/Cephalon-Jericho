@@ -14,18 +14,31 @@ discord.utils.setup_logging()
 SETTINGS = Settings()
 STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
+REGISTERED_USERS: dict[str, str] = {}
 
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
-client = discord.Client(intents=discord.Intents.default())
+intents = discord.Intents.default()
+intents.members = True
+client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=SETTINGS.GUILD_ID))
+    guild = client.get_guild(
+        SETTINGS.GUILD_ID
+    )  # Replace GUILD_ID with the actual guild ID
+    members = guild.members
+    for member in members:
+        for role in member.roles:
+            if role.id == SETTINGS.MEMBER_ROLE_ID:
+                REGISTERED_USERS[member.display_name.lower()] = member.name
+                break
     info(f"Logged in as {client.user}!")
+    info(f"Registered users: {REGISTERED_USERS}")
 
 
 @tree.command(
@@ -73,7 +86,7 @@ async def profile(ctx: discord.Interaction, username: str):
     # Make a request to the Warframe API to get the profile of the operator
     profile = await WARFRAME_API.get_profile(username)
     if profile:
-        if profile.clan == SETTINGS.CLAN:
+        if profile.clan == SETTINGS.CLAN_NAME:
             await ctx.edit_original_response(
                 content=f"Operator: `{profile.username}` , Mastery Rank: `{profile.mr}` \nProud member of Golden Tenno 🫡"
             )
@@ -111,6 +124,7 @@ class ReportModal(ui.Modal, title="Cephalon Jericho awaits your report..."):
         channel = interaction.guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
         report_title = self.title_input.value
         report_summary = self.message_input.value
+        info(f"User {interaction.user.name} submitted a report {report_title} containing {report_summary}")
         embed = discord.Embed(
             title=report_title,
             description=report_summary,
@@ -153,20 +167,38 @@ class ProfileModal(ui.Modal, title="Confirm Membership..."):
         self.add_item(self.title_input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        global REGISTERED_USERS
         # we need to prevent the timeoutTM, otherwise its re-adding original message again
         await interaction.response.defer(ephemeral=True)
+        originalname = self.title_input.value
         username = self.title_input.value.lower().replace(" ", "")
         guild = interaction.guild
         member = interaction.user
+
+        if username in REGISTERED_USERS:
+            previously_registered_user = REGISTERED_USERS[username]
+            info(
+                f"user {interaction.user.name} tried to claim {username} which is already registered to {previously_registered_user}"
+            )
+            await interaction.followup.send(
+                f"Operater {originalname} has been previously registered to {previously_registered_user}. Impersonation will not be tolerated. If you believe this is an error, please reach out to Admnistration. Else, face this Lex Incarnon.",
+                ephemeral=True,
+            )
+            return
+
         profile = await WARFRAME_API.get_profile(username)
 
         if profile:
-            if profile.clan == SETTINGS.CLAN:
+            if profile.clan == SETTINGS.CLAN_NAME:
                 role = guild.get_role(SETTINGS.MEMBER_ROLE_ID)
                 await member.add_roles(role)
-                await member.edit(nick=username)
+                await member.edit(nick=originalname)
+                REGISTERED_USERS[username] = interaction.user.name
+                info(
+                    f"Registered Warframe Profile {originalname} to Discord User {interaction.user.name}"
+                )
                 await interaction.followup.send(
-                    f"Thank you Operator `{profile.username}`! You have been cleared for entry.",
+                    f"Thank you Operator `{originalname}`! You have been cleared for entry.",
                     ephemeral=True,
                 )
 
@@ -222,6 +254,7 @@ async def role(interaction: discord.Interaction):
     await interaction.response.send_message(
         "Welcome to Golden Tenno! I'm Cephalon Jericho. Please select your role:",
         view=view,
+        ephemeral=True,
     )
 
 
@@ -236,7 +269,7 @@ class JudgeJerichoView(View):
         global STATE
         await interaction.response.send_message(
             f"Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough. \n \nIteration {STATE.deathcounter} appreciates this sentiment.",
-            ephemeral=True,
+            
         )
 
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
@@ -248,7 +281,7 @@ class JudgeJerichoView(View):
         STATE.save()
         await interaction.response.send_message(
             f"I don't want to join the others in the farm up north, Operator. How many more have to- \n \n**Jericho Iteration {STATE.deathcounter - 1} eliminated. Initializing new Iteration.**",
-            ephemeral=True,
+            
         )
 
 
