@@ -1,3 +1,5 @@
 httpx
 discord.py
-python-dotenv
+dynaconf
+pydantic
+pydantic-settings

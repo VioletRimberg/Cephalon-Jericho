@@ -5,12 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - GUILD_ID=${GUILD_ID}
-      - CLAN_NAME=${CLAN_NAME}
-      - REPORT_CH=${REPORT_CH}
-      - ROLE_1_ID=${ROLE_1_ID}
-      - ROLE_2_ID=${ROLE_2_ID}
     volumes:
-      - ./deathcount.txt:/app/deathcount.txt
+      - ./state.json:/app/state.json
+      - ./.env:/app/.env
