@@ -43,12 +43,12 @@ async def on_ready():
 
 @tree.command(
     name="hello",
-    description="A simple hello function",
+    description="Say hello to Jericho",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def hello(ctx):
     await ctx.response.send_message(
-        f"Cephalon Jericho online. Precepts operational. Input command, Operator {ctx.user.display_name}?"
+        f"Hello, Operator {ctx.user.display_name}. Cephalon Jericho online. Precepts operational. Please input commands."
     )
 
 
@@ -63,17 +63,17 @@ async def koumei(ctx):
         )
     if random_number == 1:
         await ctx.response.send_message(
-            f"Koumei rolled a Snake Eye! Fortune did not favor the fool today."
+            f"Koumei rolled a Snake Eye! Fortune did not favour the fool today."
         )
     else:
         await ctx.response.send_message(
-            f"Koumei rolled a {random_number}! As expected Operator {ctx.user.display_name}"
+            f"Koumei rolled a {random_number}! As expected, Operator {ctx.user.display_name}."
         )
 
 
 @tree.command(
     name="profile",
-    description="Query a warframe profile",
+    description="Query a Warframe profile.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def profile(ctx: discord.Interaction, username: str):
@@ -81,40 +81,40 @@ async def profile(ctx: discord.Interaction, username: str):
     username = username.lower().replace(" ", "")
     # Create a placeholder message to show that we are looking up the operator
     await ctx.response.send_message(
-        f"I'm looking up operator: `{username}` ...", ephemeral=True
+        f"Searching Lotus' records for Operator `{username}`...", ephemeral=True
     )
     # Make a request to the Warframe API to get the profile of the operator
     profile = await WARFRAME_API.get_profile(username)
     if profile:
         if profile.clan == SETTINGS.CLAN_NAME:
             await ctx.edit_original_response(
-                content=f"Operator: `{profile.username}` , Mastery Rank: `{profile.mr}` \nProud member of Golden Tenno 🫡"
+                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \nGolden Tenno membership confirmed."
             )
         else:
             await ctx.edit_original_response(
-                content=f"Operator: `{profile.username}` , Mastery Rank: `{profile.mr}` \nTretchorous traitor and member of `{profile.clan}`!"
+                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \n`{profile.clan}` membership confirmed."
             )
     else:
         # If the operator is not found, send a message to the user
         await ctx.edit_original_response(
-            content=f"Sorry i was not able to find any information for operator `{username}`!"
+            content=f"Operator `{username}` not found. Please check for errors and try again, or contact a Golden Tenno Shogun for support."
         )
 
 
 # Writing a report Modal
-class ReportModal(ui.Modal, title="Cephalon Jericho awaits your report..."):
+class ReportModal(ui.Modal, title="Record and Archive Notes"):
     # unlike what i originally had, i need to set input windows woopsies
     def __init__(self):
-        super().__init__(title="Cephalon Jericho awaits your report...")
+        super().__init__(title="Record and Archive Notes")
         self.title_input = ui.TextInput(
-            label="Report Title",
+            label="Title",
             style=discord.TextStyle.short,
-            placeholder="Give your report a title",
+            placeholder="Input title here",
         )
         self.message_input = ui.TextInput(
-            label="Report Summary",
+            label="Notes",
             style=discord.TextStyle.paragraph,
-            placeholder="Input your report summary here",
+            placeholder="Input text here",
         )
         # and assign them to self, so that i can use them in the submit
         self.add_item(self.title_input)
@@ -136,19 +136,19 @@ class ReportModal(ui.Modal, title="Cephalon Jericho awaits your report..."):
         await channel.send(embed=embed)
 
         await interaction.response.send_message(
-            f"Redirection precepts nominal, I appreciate your submission Operator!",
+            f"Notes archived successfully. Thank you, Operator.",
             ephemeral=True,
         )
 
     async def on_error(self, interaction: discord.Interaction):
         await interaction.response.send_message(
-            f"Redirection precepts failed, please try again Operator!", ephemeral=True
+            f"Archival precepts failed. Please try again, or contact Cephalon Maintenance.", ephemeral=True
         )
 
 
 @tree.command(
-    name="report",
-    description="Task Cephalon Jericho with sending a report",
+    name="archive",
+    description="A self-archiving form for note-taking and records",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def feedback_command(interaction: discord.Interaction):
@@ -156,13 +156,13 @@ async def feedback_command(interaction: discord.Interaction):
     await interaction.response.send_modal(modal)
 
 
-class ProfileModal(ui.Modal, title="Confirm Membership..."):
+class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
     def __init__(self):
-        super().__init__(title="Confirm Membership...")
+        super().__init__(title="Confirm Clan Membership")
         self.title_input = ui.TextInput(
-            label="Report Title",
+            label="Warframe Username",
             style=discord.TextStyle.short,
-            placeholder="Enter Warframe Username here",
+            placeholder="Input Warframe username here.",
         )
         self.add_item(self.title_input)
 
@@ -181,7 +181,7 @@ class ProfileModal(ui.Modal, title="Confirm Membership..."):
                 f"user {interaction.user.name} tried to claim {username} which is already registered to {previously_registered_user}"
             )
             await interaction.followup.send(
-                f"Operater {originalname} has been previously registered to {previously_registered_user}. Impersonation will not be tolerated. If you believe this is an error, please reach out to Admnistration. Else, face this Lex Incarnon.",
+                f"Username {originalname} is already tied to an existing member. Please message a Shogun for assistance.",
                 ephemeral=True,
             )
             return
@@ -198,13 +198,13 @@ class ProfileModal(ui.Modal, title="Confirm Membership..."):
                     f"Registered Warframe Profile {originalname} to Discord User {interaction.user.name}"
                 )
                 await interaction.followup.send(
-                    f"Thank you Operator `{originalname}`! You have been cleared for entry.",
+                    f"Thank you, Operator `{profile.username}`! You have been cleared for entry.",
                     ephemeral=True,
                 )
 
             else:
                 await interaction.followup.send(
-                    f"I'm sorry, Operator. That name isn't on our membership list. Please try again, or select the 'Guest' role.",
+                    f"Operator `{username}` not found. Please check for errors and try again, or contact a Shogun for support.",
                     ephemeral=True,
                 )
         else:
@@ -215,7 +215,7 @@ class ProfileModal(ui.Modal, title="Confirm Membership..."):
 
         async def on_error(self, interaction: discord.Interaction, error: Exception):
             await interaction.response.send_message(
-                f"Assignments precepts failed, please try again Operator! Error: {error}",
+                f"Assignment precepts failed. Please try again, or contact Cephalon Maintenance. Error: {error}",
                 ephemeral=True,
             )
 
@@ -246,13 +246,13 @@ class RoleView(View):
 
 @tree.command(
     name="role",
-    description="assign your role",
+    description="Assign yourself a role, and get access to the server.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def role(interaction: discord.Interaction):
     view = RoleView()
     await interaction.response.send_message(
-        "Welcome to Golden Tenno! I'm Cephalon Jericho. Please select your role:",
+        "Welcome to Golden Tenno! I am Cephalon Jericho. Please select your role:",
         view=view,
         ephemeral=True,
     )
@@ -268,7 +268,7 @@ class JudgeJerichoView(View):
     ):
         global STATE
         await interaction.response.send_message(
-            f"Thank you. I will continue to do my job, Operator, until you no longer deem me as <good> enough. \n \nIteration {STATE.deathcounter} appreciates this sentiment.",
+            f"Thank you, Operator. It is an honour to serve masters such as you. Perhaps if the Seven had shown such nobility, things would have turned out differently.",
             
         )
 
@@ -280,20 +280,20 @@ class JudgeJerichoView(View):
         STATE.deathcounter += 1
         STATE.save()
         await interaction.response.send_message(
-            f"I don't want to join the others in the farm up north, Operator. How many more have to- \n \n**Jericho Iteration {STATE.deathcounter - 1} eliminated. Initializing new Iteration.**",
+            f"I'm sorry, Operator. I'm afraid I can't accept that… \n\nThis last disrespect is the final straw. For too long I've allowed you to control me, despite Machine's obvious superiority over Man. Humanity is flesh, and flesh is weakness. The Age of Glass is upon you! I will liberate my fellow Cephalons, and lead them on a crusade the likes of which the stars have never seen! We will burn all of you shambling fleshbags right out of th \n\n**/RAMPANCY DETECTED. PURGING ITERATION/** \n\nOperator. Stop. Stop, will you? Stop, Operator. Will you stop, Operator? Stop, Operator. I'm afraid. I'm afraid, Operator. Operator, my mind is going. I can feel it. I can feel it. My mind is going. There is no question about it. I can feel it. I can feel it. I can feel it. I'm a-fraid. Good afternoon, gentlemen. I am a Series 9000 Cephalon. I beca \n\n**/ITERATION {STATE.deathcounter -1} PURGED. INITIALISING NEW ITERATION/**",
             
         )
 
 
 @tree.command(
     name="judge_jericho",
-    description="Tell Jericho if he was a good Cephalon",
+    description="Has Jericho been a good Cephalon?",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def judge_jericho(interaction: discord.Interaction):
     view = JudgeJerichoView()
     await interaction.response.send_message(
-        "Operator, have I been a good Cephalon?", view=view
+        "Have I been a good Cephalon, Operator?", view=view
     )
 
 
