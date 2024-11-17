@@ -210,7 +210,8 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
         else:
             # If the operator is not found, send a message to the user
             await interaction.followup.send(
-                f"Sorry i was not able to find any information for Operator `{username}`!"
+                f"Operator {username} not found. Please check for errors and try again, or contact a Golden Tenno Shogun for support.",
+                 ephemeral=True,
             )
 
         async def on_error(self, interaction: discord.Interaction, error: Exception):
