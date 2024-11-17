@@ -51,6 +51,16 @@ async def hello(ctx):
         f"Hello, Operator {ctx.user.display_name}. Cephalon Jericho online. Precepts operational. Please input commands."
     )
 
+@tree.command(
+    name="smooch",
+    description="Wait, you actually want to kiss glass?",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def smooch(ctx):
+    await ctx.response.send_message(
+        f"Operator {ctx.user.display_name} I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this."
+    )
+
 
 @tree.command(
     name="koumei", description="Roll a dice", guild=discord.Object(SETTINGS.GUILD_ID)
