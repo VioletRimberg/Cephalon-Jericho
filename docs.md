@@ -1,5 +1,9 @@
 # Cephalon Jericho - Your Warframe Guild Discord Bot
 
+<div style="text-align: center;">
+  <img src="./images/jericho480.png" alt="Cephalon Jericho Logo">
+</div>
+
 Cephalon Jericho is a Discord bot for managing Warframe guilds. It offers features such as user authorization, member role management, and more, helping guild admins streamline their server administration while engaging users.
 
 ## Table of Contents
