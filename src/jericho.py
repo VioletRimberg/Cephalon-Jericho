@@ -165,6 +165,59 @@ async def feedback_command(interaction: discord.Interaction):
     modal = ReportModal()
     await interaction.response.send_modal(modal)
 
+class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
+    # unlike what i originally had, i need to set input windows woopsies
+    def __init__(self):
+        super().__init__(title="Submit and Confirm Absences")
+        self.title_input = ui.TextInput(
+            label="Time frame",
+            style=discord.TextStyle.short,
+            placeholder="Input time frame here",
+        )
+        self.message_input = ui.TextInput(
+            label="Additional Notes",
+            style=discord.TextStyle.paragraph,
+            required=False,
+            placeholder="Input additional notes here, they are optional",
+        )
+        # and assign them to self, so that i can use them in the submit
+        self.add_item(self.title_input)
+        self.add_item(self.message_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        channel = interaction.guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
+        absence_title = self.title_input.value
+        absence_summary = self.message_input.value
+        info(f"User {interaction.user.name} submitted a absence {absence_title} containing {absence_summary}")
+        embed = discord.Embed(
+            title=absence_title,
+            description=absence_summary,
+            colour=discord.Colour.blurple(),
+        )
+        embed.set_author(
+            name=interaction.user.display_name, icon_url=interaction.user.avatar.url
+        )
+        await channel.send(embed=embed)
+
+        await interaction.response.send_message(
+            f"Absence documented successfully. Thank you, Operator.",
+            ephemeral=True,
+        )
+
+    async def on_error(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            f"Archival precepts failed. Please try again, or contact Cephalon Maintenance.", ephemeral=True
+        )
+
+
+@tree.command(
+    name="absence",
+    description="A self reporting absence form",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def absence_command(interaction: discord.Interaction):
+    modal = AbsenceModal()
+    await interaction.response.send_modal(modal)
 
 class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
     def __init__(self):
