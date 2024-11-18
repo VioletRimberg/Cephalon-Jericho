@@ -166,7 +166,6 @@ async def feedback_command(interaction: discord.Interaction):
     await interaction.response.send_modal(modal)
 
 class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
-    # unlike what i originally had, i need to set input windows woopsies
     def __init__(self):
         super().__init__(title="Submit and Confirm Absences")
         self.title_input = ui.TextInput(
