@@ -1,14 +1,14 @@
 # Cephalon Jericho - Your Warframe Guild Discord Bot
 
 <div style="text-align: center;">
-  <img src="./images/jericho480.png" alt="Cephalon Jericho Logo">
+  <img src="./images/Jericho480.png" alt="Cephalon Jericho Logo">
 </div>
 
 Utilize an authorization tool for guild members, multiple tools for admins and functionalities for users. This bot was initially written for the Golden Tenno Clan, but can easily be adjusted to be used for your clan as well.
 
 ## Installation
 
-Cephalon Jericho utelizes Docker containers, for easy set up with minimal configuration. I'd recommend using Docker-Compose.
+Cephalon Jericho utelizes Docker containers, for easy set up with minimal configuration. Docker-Compose is recommended.
 
 ### Prerequisites
 - Docker installed on your machine ([Get Docker](https://docs.docker.com/get-docker/))
