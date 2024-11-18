@@ -1,10 +1,10 @@
-version: '3.8'
-
 services:
   jericho:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    image: ghcr.io/violetrimberg/cephalon-jericho:latest
+    restart: unless-stopped
     volumes:
       - ./state.json:/app/state.json
-      - ./.env:/app/.env
+      - ./.env:/app/.env # Define your environment variables here
