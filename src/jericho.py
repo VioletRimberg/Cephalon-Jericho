@@ -52,17 +52,6 @@ async def hello(ctx):
     )
 
 @tree.command(
-    name="smooch",
-    description="Wait, you actually want to kiss glass?",
-    guild=discord.Object(SETTINGS.GUILD_ID),
-)
-async def smooch(ctx):
-    await ctx.response.send_message(
-        f"Operator {ctx.user.display_name} I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this."
-    )
-
-
-@tree.command(
     name="koumei", description="Roll a dice", guild=discord.Object(SETTINGS.GUILD_ID)
 )
 async def koumei(ctx):
@@ -357,6 +346,41 @@ async def judge_jericho(interaction: discord.Interaction):
     view = JudgeJerichoView()
     await interaction.response.send_message(
         "Have I been a good Cephalon, Operator?", view=view
+    )
+
+class SmoochView(View):
+    def __init__(self, *, timeout=180):
+        super().__init__(timeout=timeout)
+
+    @discord.ui.button(label="Yes", style=ButtonStyle.primary)
+    async def smooch_jericho(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        global STATE
+        await interaction.response.send_message(
+            f"Operator I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this.",
+            
+        )
+
+    @discord.ui.button(label="YES!!", style=ButtonStyle.secondary)
+    async def smooch_jericho_harder(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        global STATE
+        await interaction.response.send_message(
+            f"Operator I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this.",
+        )
+
+
+@tree.command(
+    name="smooch",
+    description="Wait, you actually want to kiss glass?",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def smooch(interaction: discord.Interaction):
+    view = SmoochView()
+    await interaction.response.send_message(
+        "Are you sure you want to kiss Jericho?", view=view
     )
 
 
