@@ -8,7 +8,7 @@ Utilize an authorization tool for guild members, multiple tools for admins and f
 
 ## Installation
 
-Cephalon Jericho utelizes Docker containers, for easy set up with minimal configuration. I'd recommend using Docker-Compose.
+Cephalon Jericho utelizes Docker containers, for easy set up with minimal configuration. Docker-Compose is recommended.
 
 ### Prerequisites
 - Docker installed on your machine ([Get Docker](https://docs.docker.com/get-docker/))
