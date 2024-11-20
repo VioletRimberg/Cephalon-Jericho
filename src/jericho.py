@@ -164,7 +164,6 @@ async def profile(ctx: discord.Interaction, username: str):
 
 # Writing a report Modal
 class ReportModal(ui.Modal, title="Record and Archive Notes"):
-    # unlike what i originally had, i need to set input windows woopsies
     def __init__(self):
         super().__init__(title="Record and Archive Notes")
         self.title_input = ui.TextInput(
@@ -177,15 +176,22 @@ class ReportModal(ui.Modal, title="Record and Archive Notes"):
             style=discord.TextStyle.paragraph,
             placeholder="Input text here",
         )
-        # and assign them to self, so that i can use them in the submit
         self.add_item(self.title_input)
         self.add_item(self.message_input)
 
+        # Initialize success and failure message lists
+        self.success_choices = []
+        self.failure_choices = []
+
     async def on_submit(self, interaction: discord.Interaction):
+        # Get the report channel
         channel = interaction.guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
         report_title = self.title_input.value
         report_summary = self.message_input.value
+
+        # Logging
         info(f"User {interaction.user.name} submitted a report {report_title} containing {report_summary}")
+
         embed = discord.Embed(
             title=report_title,
             description=report_summary,
@@ -196,15 +202,32 @@ class ReportModal(ui.Modal, title="Record and Archive Notes"):
         )
         await channel.send(embed=embed)
 
-        await interaction.response.send_message(
-            f"Notes archived successfully. Thank you, Operator.",
-            ephemeral=True,
-        )
+        # Load template for success and failure messages
+        with open("templates/archive.txt", "r") as f:
+            lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    async def on_error(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            f"Archival precepts failed. Please try again, or contact Cephalon Maintenance.", ephemeral=True
-        )
+        # Ensure there are enough lines
+        if len(lines) < 4:
+            print("Error: Template doesn't have enough lines.")
+            return
+
+        self.success_choices = lines[0:2]  
+        self.failure_choices = lines[2:4]  
+
+        selected_message = random.choices(self.success_choices, weights=[50, 50], k=1)[0]
+        success_message = env.from_string(selected_message).render()
+
+        await interaction.response.send_message(success_message, ephemeral=True)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        #error handling messages
+        if not self.failure_choices:
+            self.failure_choices = ["Archival precepts failed. Please try again, or contact Cephalon Maintenance.", "Something went wrong. Please try again later."]
+        
+        failure_message = random.choices(self.failure_choices, weights=[50, 50], k=1)[0]
+        failure_message = env.from_string(failure_message).render()
+
+        await interaction.response.send_message(failure_message, ephemeral=True)
 
 
 @tree.command(
