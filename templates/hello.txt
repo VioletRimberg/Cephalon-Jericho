@@ -1,0 +1,2 @@
+Hello, Operator {{ username }}. Cephalon Jericho online. Precepts operational. Please input commands.
+Operator {{ username }}, don't you think it's a little late for "hello's" after everything that's happened?

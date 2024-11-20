@@ -1,0 +1,8 @@
+Koumei rolled a Jackpot! The dice maiden lives up to her name.
+A jackpot doesn't make up for how weak the flesh is - but here is your {{ number }}.
+
+Koumei rolled a Snake Eye! Fortune did not favour the fool today.
+You'd think you are used to failure by now, operator {{ username }}.
+
+Koumei rolled a {{ number }}! As expected, Operator {{ username }}.
+{{ username }} really, {{ number }} is the best you could do?

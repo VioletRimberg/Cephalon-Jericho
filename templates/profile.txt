@@ -1,0 +1,10 @@
+Searching Lotus' records for Operator {{ username }}...
+Searching Memory logs for {{ username }}. 
+
+Records located. Operator: {{ username }}, Mastery Rank: {{ mr }}. Golden Tenno membership confirmed.
+Records located. Operator: {{ username }}, Mastery Rank: {{ mr }}. Memory Log states a Golden Tenno membership.
+
+Records located. Operator: {{ username }}, Mastery Rank: {{ mr }}. Clan: {{ clan }} membership confirmed.
+Records located. Operator: {{ username }}, Mastery Rank: {{ mr }}. Different origin detected. Operator belongs to {{ clan }} clan.
+
+Operator {{ username }} not found. Please check for errors and try again, or contact a Golden Tenno Shogun for support.

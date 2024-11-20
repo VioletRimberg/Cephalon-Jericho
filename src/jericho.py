@@ -8,6 +8,8 @@ from warframe import WarframeAPI
 from logging import warn, error, info
 from settings import Settings
 from state import State
+from jinja2 import Environment, FileSystemLoader
+
 
 discord.utils.setup_logging()
 
@@ -23,6 +25,9 @@ intents = discord.Intents.default()
 intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+
+env = Environment(loader=FileSystemLoader('templates'))
+
 
 
 @client.event
@@ -40,6 +45,15 @@ async def on_ready():
     info(f"Logged in as {client.user}!")
     info(f"Registered users: {REGISTERED_USERS}")
 
+def render_template(template_name, weights=None, **kwargs):
+    with open(f"templates/{template_name}", "r") as f:
+        lines = f.readlines()
+
+    if len(lines) < 2:
+        raise ValueError(f"The '{template_name}' template must contain at least two lines.")
+
+    selected_line = random.choices(lines, weights=weights or [1] * len(lines), k=1)[0].strip()
+    return env.from_string(selected_line).render(**kwargs)
 
 @tree.command(
     name="hello",
@@ -47,28 +61,38 @@ async def on_ready():
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def hello(ctx):
-    await ctx.response.send_message(
-        f"Hello, Operator {ctx.user.display_name}. Cephalon Jericho online. Precepts operational. Please input commands."
-    )
+    message = render_template("hello.txt", weights=[90, 10], username=ctx.user.display_name)
+    await ctx.response.send_message(message)
+  
 
 @tree.command(
     name="koumei", description="Roll a dice", guild=discord.Object(SETTINGS.GUILD_ID)
 )
 async def koumei(ctx):
     random_number = random.randint(1, 6)
-    if random_number == 6:
-        await ctx.response.send_message(
-            f"Koumei rolled a Jackpot! The dice maiden lives up to her name."
-        )
-    if random_number == 1:
-        await ctx.response.send_message(
-            f"Koumei rolled a Snake Eye! Fortune did not favour the fool today."
-        )
-    else:
-        await ctx.response.send_message(
-            f"Koumei rolled a {random_number}! As expected, Operator {ctx.user.display_name}."
-        )
 
+    # Mapping outcome to text block in template
+    if random_number == 6:
+        block = 0  # Jackpot
+    elif random_number == 1:
+        block = 1  # Snake Eye
+    else:
+        block = 2  # General result
+
+    with open("templates/koumei.txt", "r") as f:
+        lines = f.readlines()
+
+    line_start = block * 2
+    line_choices = lines[line_start:line_start + 2]
+
+    # Setting weighting
+    selected_line = random.choices(line_choices, weights=[90, 10], k=1)[0].strip()
+
+    # Rendering
+    message = env.from_string(selected_line).render(
+        number=random_number, username=ctx.user.display_name
+    )
+    await ctx.response.send_message(message)
 
 @tree.command(
     name="profile",
@@ -79,25 +103,63 @@ async def profile(ctx: discord.Interaction, username: str):
     # Clean the username to lower case and remove spaces
     username = username.lower().replace(" ", "")
     # Create a placeholder message to show that we are looking up the operator
-    await ctx.response.send_message(
-        f"Searching Lotus' records for Operator `{username}`...", ephemeral=True
-    )
+    with open("templates/profile.txt", "r") as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]  # Remove empty lines
+    
+    initial_line_choices = lines[:2]  
+    initial_message = random.choices(initial_line_choices, weights=[90, 10], k=1)[0]
+
+    initial_message = env.from_string(initial_message).render(username=username)
+    
+    await ctx.response.send_message(initial_message, ephemeral=True)
+
     # Make a request to the Warframe API to get the profile of the operator
     profile = await WARFRAME_API.get_profile(username)
+    
     if profile:
         if profile.clan == SETTINGS.CLAN_NAME:
-            await ctx.edit_original_response(
-                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \nGolden Tenno membership confirmed."
-            )
+            block = 0  # Golden Tenno membership
         else:
-            await ctx.edit_original_response(
-                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \n`{profile.clan}` membership confirmed."
-            )
-    else:
-        # If the operator is not found, send a message to the user
-        await ctx.edit_original_response(
-            content=f"Operator `{username}` not found. Please check for errors and try again, or contact a Golden Tenno Shogun for support."
+            block = 1  # Different Clan
+
+        with open("templates/profile.txt", "r") as f:
+            lines = f.readlines()
+
+        if block == 0:
+            line_choices = lines[3:5]  # Golden Tenno lines
+        else:
+            line_choices = lines[6:8]  # Different Clan
+
+        # Select a line with 90% vs 10% weighting
+        selected_line = random.choices(line_choices, weights=[90, 10], k=1)[0].strip()
+
+        if not selected_line:
+            print("Error: No valid text selected.")
+            return
+
+        message = env.from_string(selected_line).render(
+            username=profile.username, mr=profile.mr, clan=profile.clan
         )
+
+        # Check if message is empty
+        if not message:
+            print("Error: Rendered message is empty.")
+            return
+
+        await ctx.edit_original_response(content=message)
+
+    else:
+        with open("templates/profile.txt", "r") as f:
+            lines = f.readlines()
+
+        failure_line = lines[8].strip()
+        failure_message = env.from_string(failure_line).render(username=username)
+
+        if not failure_message:
+            print("Error: Failure message is empty.")
+            return
+
+        await ctx.edit_original_response(content=failure_message)
 
 
 # Writing a report Modal
