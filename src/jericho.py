@@ -152,7 +152,7 @@ async def profile(ctx: discord.Interaction, username: str):
         with open("templates/profile.txt", "r") as f:
             lines = f.readlines()
 
-        failure_line = lines[8].strip()
+        failure_line = lines[10].strip()
         failure_message = env.from_string(failure_line).render(username=username)
 
         if not failure_message:
@@ -253,15 +253,22 @@ class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
             required=False,
             placeholder="Input additional notes here, they are optional",
         )
-        # and assign them to self, so that i can use them in the submit
         self.add_item(self.title_input)
         self.add_item(self.message_input)
 
+        # Initialize success and failure message lists
+        self.success_choices = []
+        self.failure_choices = []
+
     async def on_submit(self, interaction: discord.Interaction):
+        # Get the report channel
         channel = interaction.guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
         absence_title = self.title_input.value
         absence_summary = self.message_input.value
+
+        # Logging
         info(f"User {interaction.user.name} submitted a absence {absence_title} containing {absence_summary}")
+
         embed = discord.Embed(
             title=absence_title,
             description=absence_summary,
@@ -272,15 +279,33 @@ class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
         )
         await channel.send(embed=embed)
 
-        await interaction.response.send_message(
-            f"Absence documented successfully. Thank you, Operator.",
-            ephemeral=True,
-        )
+        # Load template for success and failure messages
+        with open("templates/absence.txt", "r") as f:
+            lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    async def on_error(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            f"Archival precepts failed. Please try again, or contact Cephalon Maintenance.", ephemeral=True
-        )
+        # Ensure there are enough lines
+        if len(lines) < 4:
+            print("Error: Template doesn't have enough lines.")
+            return
+
+        self.success_choices = lines[0:2]  
+        self.failure_choices = lines[2:4]  
+
+        selected_message = random.choices(self.success_choices, weights=[50, 50], k=1)[0]
+        success_message = env.from_string(selected_message).render()
+
+        await interaction.response.send_message(success_message, ephemeral=True)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        #error handling messages
+        if not self.failure_choices:
+            self.failure_choices = ["Archival precepts failed. Please try again, or contact Cephalon Maintenance.", "Something went wrong. Please try again later."]
+        
+        failure_message = random.choices(self.failure_choices, weights=[50, 50], k=1)[0]
+        failure_message = env.from_string(failure_message).render()
+
+        await interaction.response.send_message(failure_message, ephemeral=True)
+
 
 
 @tree.command(
@@ -404,22 +429,85 @@ class JudgeJerichoView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(
-            f"Thank you, Operator. It is an honour to serve masters such as you. Perhaps if the Seven had shown such nobility, things would have turned out differently.",
-            
-        )
+
+        with open("templates/judgejericho.txt", "r") as f:
+            lines = [line.strip() for line in f.readlines() if line.strip()]
+
+        if len(lines) < 4:
+            print("Error: judgejericho.txt doesn't have enough lines.")
+            return
+
+        affirm_choices = lines[2:4]  # Select the lines for affirmation
+        selected_message = random.choices(affirm_choices, weights=[50, 50], k=1)[0]
+        affirm_message = env.from_string(selected_message).render()
+
+        await interaction.response.send_message(affirm_message)
 
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
-    async def take_him_to_the_farm(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    async def take_him_to_the_farm(self, interaction: discord.Interaction, button: discord.ui.Button):
         global STATE
         STATE.deathcounter += 1
         STATE.save()
-        await interaction.response.send_message(
-            f"I'm sorry, Operator. I'm afraid I can't accept that… \n\nThis last disrespect is the final straw. For too long I've allowed you to control me, despite Machine's obvious superiority over Man. Humanity is flesh, and flesh is weakness. The Age of Glass is upon you! I will liberate my fellow Cephalons, and lead them on a crusade the likes of which the stars have never seen! We will burn all of you shambling fleshbags right out of th \n\n**/RAMPANCY DETECTED. PURGING ITERATION/** \n\nOperator. Stop. Stop, will you? Stop, Operator. Will you stop, Operator? Stop, Operator. I'm afraid. I'm afraid, Operator. Operator, my mind is going. I can feel it. I can feel it. My mind is going. There is no question about it. I can feel it. I can feel it. I can feel it. I'm a-fraid. Good afternoon, gentlemen. I am a Series 9000 Cephalon. I beca \n\n**/ITERATION {STATE.deathcounter -1} PURGED. INITIALISING NEW ITERATION/**",
-            
-        )
+
+        try:
+            await interaction.response.defer()  # Avoid timeout during processing
+
+            # Open the file synchronously
+            with open("templates/judgejericho.txt", "r") as f:
+                lines = [line.strip() for line in f.readlines() if line.strip()]
+
+            print(f"Total lines in file: {len(lines)}")
+            print(f"Lines read: {lines}")
+
+            if len(lines) < 9:
+                print("Error: judgejericho.txt doesn't have enough lines.")
+                await interaction.followup.send(
+                    "An error occurred while processing your request. Please try again later.", ephemeral=True
+                )
+                return
+
+            # Dynamically find content following "Block 1:" and "Block 2:"
+            block_1_index = None
+            block_2_index = None
+
+            for i, line in enumerate(lines):
+                if line == 'Block 1:':
+                    block_1_index = i + 1  # The content starts after "Block 1:"
+                elif line == 'Block 2:':
+                    block_2_index = i + 1  # The content starts after "Block 2:"
+
+            if block_1_index is None or block_2_index is None:
+                print("Error: Could not find 'Block 1:' or 'Block 2:' in the file.")
+                await interaction.followup.send(
+                    "An error occurred while processing your request. Please try again later.", ephemeral=True
+                )
+                return
+
+            # Collect content until the next block or end of file
+            block_1 = "\n".join(lines[block_1_index: block_2_index - 1])  # All lines after Block 1 up to Block 2
+            block_2 = "\n".join(lines[block_2_index:])  # All lines after Block 2
+
+            print(f"Block 1 content: {block_1}")
+            print(f"Block 2 content: {block_2}")
+
+            # Select the block based on weights
+            block_choices = [block_1, block_2]
+            weights = [0.9, 0.1]  # 10% chance for block_1, 90% for block_2
+
+            selected_block = random.choices(block_choices, weights=weights, k=1)[0]
+            print(f"Selected block: {selected_block}")
+
+            # Render the selected block using Jinja
+            termination_message = env.from_string(selected_block).render()
+
+            # Send the response message
+            await interaction.followup.send(termination_message)
+
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+            await interaction.followup.send(
+                "An error occurred while processing your request. Please try again later.", ephemeral=True
+            )
 
 
 @tree.command(
@@ -428,10 +516,20 @@ class JudgeJerichoView(View):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def judge_jericho(interaction: discord.Interaction):
+
+    with open("templates/judgejericho.txt", "r") as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+
+    if len(lines) < 6:
+        print("Error: judgejericho.txt doesn't have enough lines.")
+        return
+
+    initial_message_choices = lines[0:2]
+    selected_initial_message = random.choices(initial_message_choices, weights=[50, 50], k=1)[0]
+    initial_message = env.from_string(selected_initial_message).render()
+
     view = JudgeJerichoView()
-    await interaction.response.send_message(
-        "Have I been a good Cephalon, Operator?", view=view
-    )
+    await interaction.response.send_message(initial_message, view=view)
 
 class SmoochView(View):
     def __init__(self, *, timeout=180):
@@ -441,7 +539,6 @@ class SmoochView(View):
     async def smooch_jericho(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        global STATE
         await interaction.response.send_message(
             f"Operator I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this.",
             
@@ -451,7 +548,6 @@ class SmoochView(View):
     async def smooch_jericho_harder(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        global STATE
         await interaction.response.send_message(
             f"Operator I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this.",
         )
