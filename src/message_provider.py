@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from jinja2 import Environment
 import random
 import csv
-import requests
+import httpx
 
 @dataclass
 class MessageEntry:
@@ -33,7 +33,7 @@ class MessageProvider:
     @classmethod
     def from_gsheets(cls, url:str)->"MessageProvider": 
         csv_url = url.replace("/edit", "/export?format=csv")
-        response = requests.get(csv_url)
+        response = httpx.get(csv_url)
 
         if response.status_code != 200:
             raise Exception(f"Failed to fetch CSV data: {response.status_code}")
