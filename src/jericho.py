@@ -8,14 +8,15 @@ from warframe import WarframeAPI
 from logging import warn, error, info
 from settings import Settings
 from state import State
+from message_provider import MessageProvider
 
 discord.utils.setup_logging()
 
 SETTINGS = Settings()
 STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
+MESSAGE_PROVIDER = MessageProvider.from_csv("messages.csv")
 REGISTERED_USERS: dict[str, str] = {}
-
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -47,8 +48,8 @@ async def on_ready():
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def hello(ctx):
-    await ctx.response.send_message(
-        f"Hello, Operator {ctx.user.display_name}. Cephalon Jericho online. Precepts operational. Please input commands."
+    await ctx.response.send_message(MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
+        #f"Hello, Operator {ctx.user.display_name}. Cephalon Jericho online. Precepts operational. Please input commands."
     )
 
 @tree.command(
