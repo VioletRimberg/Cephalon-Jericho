@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from jinja2 import Environment
 import random
 import csv
+import requests
 
 @dataclass
 class MessageEntry:
@@ -30,9 +31,24 @@ class MessageProvider:
         return provider
 
     @classmethod
-    def from_gsheets(cls, url:str)->"MessageProvider":
-        provider = cls()  
-        # TODO
+    def from_gsheets(cls, url:str)->"MessageProvider": 
+        csv_url = url.replace("/edit", "/export?format=csv")
+        response = requests.get(csv_url)
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch CSV data: {response.status_code}")
+        
+        csv_content = response.text.splitlines()
+        reader = csv.reader(csv_content)
+        provider = cls() 
+
+        next(reader)
+        for row in reader:
+            key = row[0]
+            message = row[1]
+            weight = int(row[2])
+            provider.add(key, MessageEntry(message, weight))
+
         return provider
 
 
