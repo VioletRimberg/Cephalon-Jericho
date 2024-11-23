@@ -50,13 +50,13 @@ def test_samples_weighted_entries():
 def test_is_constructable_from_csv():
     provider = MessageProvider.from_csv("messages.csv")
     assert provider is not None
-    assert len(provider.entries) == 1
+    assert len(provider.entries) == 2
     message = provider(key = "TEST", user = "Rynn")
     assert message == "Hello Opperator Rynn"
 
 def test_is_constructable_from_gsheet():
     provider = MessageProvider.from_gsheets("https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit")
     assert provider is not None
-    assert len(provider.entries) == 1
+    assert len(provider.entries) == 2
     message = provider(key = "TEST", user = "Rynn")
     assert message == "This is a test message for Rynn."

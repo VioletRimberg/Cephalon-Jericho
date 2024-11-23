@@ -33,7 +33,7 @@ class MessageProvider:
     @classmethod
     def from_gsheets(cls, url:str)->"MessageProvider": 
         csv_url = url.replace("/edit", "/export?format=csv")
-        response = httpx.get(csv_url)
+        response = httpx.get(csv_url, follow_redirects=True)
 
         if response.status_code != 200:
             raise Exception(f"Failed to fetch CSV data: {response.status_code}")
