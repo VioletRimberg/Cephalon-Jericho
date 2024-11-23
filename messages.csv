@@ -1,0 +1,3 @@
+KEY|MESSAGE|WEIGHT
+TEST|Hello Opperator {{ user }}|1 
+HELLO|Hello, Operator {{ user }}. Cephalon Jericho online. Precepts operational. Please input commands.|1
