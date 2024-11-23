@@ -49,7 +49,6 @@ async def on_ready():
 )
 async def hello(ctx):
     await ctx.response.send_message(MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
-        #f"Hello, Operator {ctx.user.display_name}. Cephalon Jericho online. Precepts operational. Please input commands."
     )
 
 @tree.command(
@@ -58,17 +57,14 @@ async def hello(ctx):
 async def koumei(ctx):
     random_number = random.randint(1, 6)
     if random_number == 6:
-        await ctx.response.send_message(
-            f"Koumei rolled a Jackpot! The dice maiden lives up to her name."
+        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_JACKPOT", user=ctx.user.display_name, number = random_number)
         )
     if random_number == 1:
-        await ctx.response.send_message(
-            f"Koumei rolled a Snake Eye! Fortune did not favour the fool today."
+        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_SNAKE", user=ctx.user.display_name, number = random_number)
         )
     else:
-        await ctx.response.send_message(
-            f"Koumei rolled a {random_number}! As expected, Operator {ctx.user.display_name}."
-        )
+        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_NEUTRAL", user=ctx.user.display_name, number = random_number))
+        
 
 
 @tree.command(
@@ -80,24 +76,22 @@ async def profile(ctx: discord.Interaction, username: str):
     # Clean the username to lower case and remove spaces
     username = username.lower().replace(" ", "")
     # Create a placeholder message to show that we are looking up the operator
-    await ctx.response.send_message(
-        f"Searching Lotus' records for Operator `{username}`...", ephemeral=True
+    await ctx.response.send_message(MESSAGE_PROVIDER("PROFILE_SEARCH", user=username)
+        #f"Searching Lotus' records for Operator `{username}`...", 
+        ,ephemeral=True
     )
     # Make a request to the Warframe API to get the profile of the operator
     profile = await WARFRAME_API.get_profile(username)
     if profile:
         if profile.clan == SETTINGS.CLAN_NAME:
-            await ctx.edit_original_response(
-                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \nGolden Tenno membership confirmed."
+            await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_GT", user = profile.username, mr = profile.mr)
             )
         else:
-            await ctx.edit_original_response(
-                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \n`{profile.clan}` membership confirmed."
+            await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_OTHER", user = profile.username, mr = profile.mr)
             )
     else:
         # If the operator is not found, send a message to the user
-        await ctx.edit_original_response(
-            content=f"Operator `{username}` not found. Please check for errors and try again, or contact a Golden Tenno Shogun for support."
+        await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_MISSING", user = username)
         )
 
 

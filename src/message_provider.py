@@ -29,6 +29,7 @@ class MessageProvider:
                 provider.add(key, MessageEntry(message, weight))
 
         return provider
+    
 
     @classmethod
     def from_gsheets(cls, url:str)->"MessageProvider": 
@@ -47,7 +48,9 @@ class MessageProvider:
             key = row[0]
             message = row[1]
             weight = int(row[2])
-            provider.add(key, MessageEntry(message, weight))
+            #I swear to god linebreaks
+            message_with_linebreaks = message.replace(r'\n', '\n')
+            provider.add(key, MessageEntry(message_with_linebreaks, weight))
 
         return provider
 
