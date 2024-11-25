@@ -22,3 +22,6 @@ class Settings(BaseSettings):
 
     # The ID of the role assigned to guests
     GUEST_ROLE_ID: int
+
+    # The URL assigned to the Message Provider
+    MESSAGE_PROVIDER_URL: str

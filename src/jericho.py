@@ -15,7 +15,7 @@ discord.utils.setup_logging()
 SETTINGS = Settings()
 STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
-MESSAGE_PROVIDER = MessageProvider.from_gsheets("https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit")
+MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
