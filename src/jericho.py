@@ -342,7 +342,8 @@ async def text_maintenance(interaction: discord.Interaction):
 
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
         try:
-            client.MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
+            global MESSAGE_PROVIDER
+            MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
             info(f"User {interaction.user.name} attempted to refresh google sheet data")
             await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True)
             await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
