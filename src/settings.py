@@ -23,5 +23,8 @@ class Settings(BaseSettings):
     # The ID of the role assigned to guests
     GUEST_ROLE_ID: int
 
+    # The ID of the maintenance role assigned to administration
+    MAINTENANCE_ROLE_ID: int
+
     # The URL assigned to the Message Provider
     MESSAGE_PROVIDER_URL: str

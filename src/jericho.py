@@ -92,6 +92,7 @@ async def profile(ctx: discord.Interaction, username: str):
         )
 
 
+
 # Writing a report Modal
 class ReportModal(ui.Modal, title="Record and Archive Notes"):
     # unlike what i originally had, i need to set input windows woopsies
@@ -331,6 +332,35 @@ class SmoochView(View):
 async def smooch(interaction: discord.Interaction):
     view = SmoochView()
     await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
+
+@tree.command(
+    name="text_maintenance",
+    description="Order Cephalon Jericho to reload text precepts.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def text_maintenance(interaction: discord.Interaction):
+    #maintenance_role_id = SETTINGS.MAINTENANCE_ROLE_ID
+    #if not any(role.id == maintenance_role_id for role in interaction.user.roles):
+        #await interaction.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
+    #return
+    # await interaction.response.defer()
+    # try: 
+        #client.MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
+        #await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
+    #except Exception as e:
+        #await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
+
+    if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
+        try:
+            client.MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
+            info(f"User {interaction.user.name} attempted to refresh google sheet data")
+            await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True)
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
+        except Exception as e:
+            info(f"Refresh failed with error: {e}")
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
+    else:
+        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
 
 
 client.run(SETTINGS.DISCORD_TOKEN)
