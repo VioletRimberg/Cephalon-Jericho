@@ -339,16 +339,6 @@ async def smooch(interaction: discord.Interaction):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def text_maintenance(interaction: discord.Interaction):
-    #maintenance_role_id = SETTINGS.MAINTENANCE_ROLE_ID
-    #if not any(role.id == maintenance_role_id for role in interaction.user.roles):
-        #await interaction.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
-    #return
-    # await interaction.response.defer()
-    # try: 
-        #client.MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
-        #await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
-    #except Exception as e:
-        #await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
 
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
         try:
