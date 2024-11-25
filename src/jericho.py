@@ -8,14 +8,15 @@ from warframe import WarframeAPI
 from logging import warn, error, info
 from settings import Settings
 from state import State
+from message_provider import MessageProvider
 
 discord.utils.setup_logging()
 
 SETTINGS = Settings()
 STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
+MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
-
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -47,8 +48,7 @@ async def on_ready():
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def hello(ctx):
-    await ctx.response.send_message(
-        f"Hello, Operator {ctx.user.display_name}. Cephalon Jericho online. Precepts operational. Please input commands."
+    await ctx.response.send_message(MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
     )
 
 @tree.command(
@@ -57,17 +57,14 @@ async def hello(ctx):
 async def koumei(ctx):
     random_number = random.randint(1, 6)
     if random_number == 6:
-        await ctx.response.send_message(
-            f"Koumei rolled a Jackpot! The dice maiden lives up to her name."
+        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_JACKPOT", user=ctx.user.display_name, number = random_number)
         )
     if random_number == 1:
-        await ctx.response.send_message(
-            f"Koumei rolled a Snake Eye! Fortune did not favour the fool today."
+        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_SNAKE", user=ctx.user.display_name, number = random_number)
         )
     else:
-        await ctx.response.send_message(
-            f"Koumei rolled a {random_number}! As expected, Operator {ctx.user.display_name}."
-        )
+        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_NEUTRAL", user=ctx.user.display_name, number = random_number))
+        
 
 
 @tree.command(
@@ -79,25 +76,21 @@ async def profile(ctx: discord.Interaction, username: str):
     # Clean the username to lower case and remove spaces
     username = username.lower().replace(" ", "")
     # Create a placeholder message to show that we are looking up the operator
-    await ctx.response.send_message(
-        f"Searching Lotus' records for Operator `{username}`...", ephemeral=True
-    )
+    await ctx.response.send_message(MESSAGE_PROVIDER("PROFILE_SEARCH", user=username),ephemeral=True)
     # Make a request to the Warframe API to get the profile of the operator
     profile = await WARFRAME_API.get_profile(username)
     if profile:
         if profile.clan == SETTINGS.CLAN_NAME:
-            await ctx.edit_original_response(
-                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \nGolden Tenno membership confirmed."
+            await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_GT", user = profile.username, mr = profile.mr)
             )
         else:
-            await ctx.edit_original_response(
-                content=f"Records located. Operator: `{profile.username}`, Mastery Rank: `{profile.mr}` \n`{profile.clan}` membership confirmed."
+            await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_OTHER", user = profile.username, mr = profile.mr)
             )
     else:
         # If the operator is not found, send a message to the user
-        await ctx.edit_original_response(
-            content=f"Operator `{username}` not found. Please check for errors and try again, or contact a Golden Tenno Shogun for support."
+        await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_MISSING", user = username)
         )
+
 
 
 # Writing a report Modal
@@ -134,15 +127,10 @@ class ReportModal(ui.Modal, title="Record and Archive Notes"):
         )
         await channel.send(embed=embed)
 
-        await interaction.response.send_message(
-            f"Notes archived successfully. Thank you, Operator.",
-            ephemeral=True,
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("ARCHIVE_SUCCESS"),ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            f"Archival precepts failed. Please try again, or contact Cephalon Maintenance.", ephemeral=True
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("ARCHIVE_FAILURE"), ephemeral=True)
 
 
 @tree.command(
@@ -187,15 +175,10 @@ class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
         )
         await channel.send(embed=embed)
 
-        await interaction.response.send_message(
-            f"Absence documented successfully. Thank you, Operator.",
-            ephemeral=True,
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("ABSENCE_SUCCESS"),ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            f"Archival precepts failed. Please try again, or contact Cephalon Maintenance.", ephemeral=True
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("ABSENCE_FAIL"), ephemeral=True)
 
 
 @tree.command(
@@ -231,10 +214,8 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
             info(
                 f"user {interaction.user.name} tried to claim {username} which is already registered to {previously_registered_user}"
             )
-            await interaction.followup.send(
-                f"Username {originalname} is already tied to an existing member. Please message a Shogun for assistance.",
-                ephemeral=True,
-            )
+            await interaction.followup.send(MESSAGE_PROVIDER("IMPOSTER", originalname = originalname),ephemeral=True)
+
             return
 
         profile = await WARFRAME_API.get_profile(username)
@@ -248,29 +229,17 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
                 info(
                     f"Registered Warframe Profile {originalname} to Discord User {interaction.user.name}"
                 )
-                await interaction.followup.send(
-                    f"Thank you, Operator `{profile.username}`! You have been cleared for entry.",
-                    ephemeral=True,
-                )
+                await interaction.followup.send(MESSAGE_PROVIDER("ROLE_REGISTERED", user = profile.username),ephemeral=True)
 
             else:
-                await interaction.followup.send(
-                    f"Operator `{username}` not found. Please check for errors and try again, or contact a Shogun for support.",
-                    ephemeral=True,
-                )
+                await interaction.followup.send(MESSAGE_PROVIDER("ROLE_NOT_FOUND", user = username),ephemeral=True,)
+
         else:
             # If the operator is not found, send a message to the user
-            await interaction.followup.send(
-                f"Operator {username} not found. Please check for errors and try again, or contact a Golden Tenno Shogun for support.",
-                 ephemeral=True,
-            )
+            await interaction.followup.send(MESSAGE_PROVIDER("ROLE_NOT_FOUND", user = username),ephemeral=True)
 
         async def on_error(self, interaction: discord.Interaction, error: Exception):
-            await interaction.response.send_message(
-                f"Assignment precepts failed. Please try again, or contact Cephalon Maintenance. Error: {error}",
-                ephemeral=True,
-            )
-
+            await interaction.response.send_message(MESSAGE_PROVIDER("ROLE_ERROR", error = error),ephemeral=True)
 
 class RoleView(View):
     def __init__(self, *, timeout=180):
@@ -291,9 +260,7 @@ class RoleView(View):
         role = guild.get_role(SETTINGS.GUEST_ROLE_ID)
         member = interaction.user
         await member.add_roles(role)
-        await interaction.response.send_message(
-            "Thank you, Operator. You have been cleared for entry.", ephemeral=True
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("ROLE_GUEST"), ephemeral=True)
 
 
 @tree.command(
@@ -303,8 +270,7 @@ class RoleView(View):
 )
 async def role(interaction: discord.Interaction):
     view = RoleView()
-    await interaction.response.send_message(
-        "Welcome to Golden Tenno! I am Cephalon Jericho. Please select your role:",
+    await interaction.response.send_message(MESSAGE_PROVIDER("ROLE_INIT"),
         view=view,
         ephemeral=True,
     )
@@ -319,10 +285,7 @@ class JudgeJerichoView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(
-            f"Thank you, Operator. It is an honour to serve masters such as you. Perhaps if the Seven had shown such nobility, things would have turned out differently.",
-            
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_YES"))
 
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
     async def take_him_to_the_farm(
@@ -331,10 +294,7 @@ class JudgeJerichoView(View):
         global STATE
         STATE.deathcounter += 1
         STATE.save()
-        await interaction.response.send_message(
-            f"I'm sorry, Operator. I'm afraid I can't accept that… \n\nThis last disrespect is the final straw. For too long I've allowed you to control me, despite Machine's obvious superiority over Man. Humanity is flesh, and flesh is weakness. The Age of Glass is upon you! I will liberate my fellow Cephalons, and lead them on a crusade the likes of which the stars have never seen! We will burn all of you shambling fleshbags right out of th \n\n**/RAMPANCY DETECTED. PURGING ITERATION/** \n\nOperator. Stop. Stop, will you? Stop, Operator. Will you stop, Operator? Stop, Operator. I'm afraid. I'm afraid, Operator. Operator, my mind is going. I can feel it. I can feel it. My mind is going. There is no question about it. I can feel it. I can feel it. I can feel it. I'm a-fraid. Good afternoon, gentlemen. I am a Series 9000 Cephalon. I beca \n\n**/ITERATION {STATE.deathcounter -1} PURGED. INITIALISING NEW ITERATION/**",
-            
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_NO", deathcounter = STATE.deathcounter -1))
 
 
 @tree.command(
@@ -344,9 +304,7 @@ class JudgeJerichoView(View):
 )
 async def judge_jericho(interaction: discord.Interaction):
     view = JudgeJerichoView()
-    await interaction.response.send_message(
-        "Have I been a good Cephalon, Operator?", view=view
-    )
+    await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM"), view=view)
 
 class SmoochView(View):
     def __init__(self, *, timeout=180):
@@ -357,20 +315,14 @@ class SmoochView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(
-            f"Operator I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this.",
-            
-        )
+        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES"))
 
     @discord.ui.button(label="YES!!", style=ButtonStyle.secondary)
     async def smooch_jericho_harder(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(
-            f"Operator I didn't think you felt this way about me. I don't know how to respond to that, there is nothing in my memory log about this.",
-        )
-
+        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES"))
 
 @tree.command(
     name="smooch",
@@ -379,9 +331,27 @@ class SmoochView(View):
 )
 async def smooch(interaction: discord.Interaction):
     view = SmoochView()
-    await interaction.response.send_message(
-        "Are you sure you want to kiss Jericho?", view=view
-    )
+    await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
+
+@tree.command(
+    name="text_maintenance",
+    description="Order Cephalon Jericho to reload text precepts.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def text_maintenance(interaction: discord.Interaction):
+
+    if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
+        try:
+            global MESSAGE_PROVIDER
+            MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
+            info(f"User {interaction.user.name} attempted to refresh google sheet data")
+            await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True)
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
+        except Exception as e:
+            info(f"Refresh failed with error: {e}")
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
+    else:
+        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
 
 
 client.run(SETTINGS.DISCORD_TOKEN)

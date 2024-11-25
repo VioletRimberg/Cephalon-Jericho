@@ -2,3 +2,4 @@ httpx
 discord.py
 pydantic
 pydantic-settings
+Jinja2 
