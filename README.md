@@ -35,3 +35,5 @@ While Cephalon Jericho offers a few [commands](./docs.md), its core functionalit
 | `REPORT_CHANNEL_ID` | Channel ID for bot reports   | `YOUR_CHANNEL_ID`      |
 | `MEMBER_ROLE_ID`    | Role ID for guild members    | `YOUR_MEMBER_ROLE_ID`  |
 | `GUEST_ROLE_ID`     | Role ID for guest members    | `YOUR_GUEST_ROLE_ID`   |
+| `MAINTENANCE_ROLE_ID`     | Role ID for maintenance users    | `YOUR_MAINTENANCE_ROLE_ID`   |
+| `MESSAGE_PROVIDER_URL`     | URL for the message provider, defaults to [jericho_text](https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit)   | `YOUR_MESSAGE_PROVIDER_URL`   |

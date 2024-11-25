@@ -17,6 +17,8 @@ Cephalon Jericho uses environment variables for configuration which are required
 | `REPORT_CHANNEL_ID` | Channel ID for bot reports   | `YOUR_CHANNEL_ID`      |
 | `MEMBER_ROLE_ID`    | Role ID for guild members    | `YOUR_MEMBER_ROLE_ID`  |
 | `GUEST_ROLE_ID`     | Role ID for guest members    | `YOUR_GUEST_ROLE_ID`   |
+| `MAINTENANCE_ROLE_ID`     | Role ID for maintenance users    | `YOUR_MAINTENANCE_ROLE_ID`   |
+| `MESSAGE_PROVIDER_URL`     | URL for the message provider, defaults to [jericho_text](https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit)   | `YOUR_MESSAGE_PROVIDER_URL`   |
 
 ## Usage
 
@@ -55,6 +57,7 @@ The current list of commands contains the following functions:
 - `/profile`: A form to check warframe user data, including warframe name, mastery rank and clan.
 - `/role`: Allows users to either choose member or guest roles. To verify as a member, users must enter their Warframe username, which is checked against the guild name. After verification, the corresponding role is automatically assigned. 
 - `/smooch`: Allows the user to give Cephalon Jericho a little kiss. 
+- `/text_maintenance`: Allows users with the maintenance role to refresh currently loaded google sheet
 
 ## License
 
