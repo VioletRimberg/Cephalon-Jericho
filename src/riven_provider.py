@@ -23,7 +23,6 @@ class RivenProvider:
         desired_stats = []
         negative_stats = []
         
-        # First, split the string by "or" to handle alternative options
         options = cell.split(" or ")
         
         for option in options:
@@ -47,14 +46,12 @@ class RivenProvider:
             reader = csv.reader(infile)
             data = list(reader)
 
-        # Skip header row (the first line)
         data = data[1:]
 
-        # Normalize the sheet's data
         for row in data:
-            weapon = row[0]  # Weapon name is the first column
-            positive_stats = row[1]  # Positive stats column
-            negative_stats = row[2] if len(row) > 2 else ""  # Negative stats column (may not exist in some rows)
+            weapon = row[0]  
+            positive_stats = row[1]  
+            negative_stats = row[2] if len(row) > 2 else ""  
 
             best_stats, desired_stats, negative_stats = self.extract_best_and_desired_stats(positive_stats)
 

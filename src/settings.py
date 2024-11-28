@@ -28,3 +28,4 @@ class Settings(BaseSettings):
 
     # The URL assigned to the Message Provider
     MESSAGE_PROVIDER_URL: str = "https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit"
+    
