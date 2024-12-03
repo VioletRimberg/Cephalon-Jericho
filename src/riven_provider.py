@@ -25,47 +25,70 @@ class RivenProvider:
         best_stats = set()
         desired_stats = set()
         negative_stats = set()
-    
+
         options = cell.split(" or ")
-    
+
         for option in options:
             # Split by space to separate individual stats
             stats = option.split(" ")
         
-            # The first group will be the "best" stats
-            for stat in stats[0].split("/"):  # Split by slash if necessary
-                best_stats.add(stat.strip())  # Use `set` to avoid duplicates
+        # The first group will be the "best" stats
+        for stat in stats[0].split("/"):  # Split by slash if necessary
+            stat = stat.strip()
+            if stat.startswith("-"):  # If the stat starts with "-", it is a negative stat
+                negative_stats.add(stat[1:].strip())  # Add to negative stats without the "-"
+            else:
+                best_stats.add(stat)  # Otherwise, add to best stats
 
-            # All subsequent stats are considered "desired" stats
-            for stat_group in stats[1:]:
-                for stat in stat_group.split("/"):  # Split by slash if necessary
-                    # Only add to desired_stats if it's not already in best_stats
-                    if stat.strip() not in best_stats:
-                        desired_stats.add(stat.strip())
-
+        # All subsequent stats are considered "desired" stats
+        for stat_group in stats[1:]:
+            for stat in stat_group.split("/"):  # Split by slash if necessary
+                stat = stat.strip()
+                if stat not in best_stats and stat not in negative_stats:
+                    desired_stats.add(stat)
         return list(best_stats), list(desired_stats), list(negative_stats)
 
     
     def normalize_sheet(self, sheet_name: str, input_file: str):
         """
         Normalize the given sheet, ensuring rows are consistent and extracting best stats.
+        This function dynamically adjusts to column positions based on the header row.
         """
         with open(input_file, 'r', encoding='utf-8') as infile:
             reader = csv.reader(infile)
             data = list(reader)
 
-        data = data[1:]  # Skip the header
+        # The first row should contain headers, so we inspect it
+        headers = data[0]
+        try:
+            # Dynamically find the column indices for each important field
+            weapon_col = headers.index('WEAPON')  # Adjust to correct header name if needed
+            best_stats_col = headers.index('POSITIVE STATS:')  # Adjust as needed
+            negative_stats_col = headers.index('NEGATIVE STATS:') if 'NEGATIVE STATS:' in headers else None
+    
+        except ValueError as e:
+            raise Exception(f"Missing expected columns in sheet {sheet_name}: {e}")
 
-        for row in data:
-            weapon = row[0]  
-            positive_stats = row[1]  
-            negative_stats = row[2] if len(row) > 2 else ""  
+        # Process all rows after the header
+        for row in data[1:]:
+            weapon = row[weapon_col]
+            positive_stats = row[best_stats_col]
+            negative_stats = []  # Default to empty list if no negative stats column is found
+        
+            if negative_stats_col is not None:
+                negative_stats = row[negative_stats_col].split('/') if row[negative_stats_col] else []
 
             # Get unique stats
-            best_stats, desired_stats, negative_stats = self.extract_best_and_desired_stats(positive_stats)
+            best_stats, desired_stats, _ = self.extract_best_and_desired_stats(positive_stats)
 
-            # Combine all extracted data into a new row
-            normalized_row = [sheet_name, weapon] + best_stats + desired_stats + ["negative stat " + stat for stat in negative_stats]
+            # Combine all extracted data into a dictionary
+            normalized_row = {
+                "SHEET": sheet_name,
+                "WEAPON": weapon,
+                "BEST STATS": best_stats,
+                "DESIRED STATS": desired_stats,
+                "NEGATIVE STATS": negative_stats
+            }
 
             # Add to the combined normalized data
             self.normalized_data.append(normalized_row)
@@ -79,7 +102,7 @@ class RivenProvider:
             url = f"{self.base_url}{gid}"
 
             # Fetch the sheet
-            response = httpx.get(url)
+            response = httpx.get(url, follow_redirects=True)
             if response.status_code != 200:
                 raise Exception(f"Failed to fetch CSV data for {sheet_name}: {response.status_code}")
 
@@ -98,6 +121,7 @@ class RivenProvider:
             writer.writerows(self.normalized_data)
 
         print("Combined and normalized CSV created: combined_normalized_rivens.csv")
+        print(f"Normalized data: {self.normalized_data[:5]}")  # Print first 5 rows for debugging
 
 
 

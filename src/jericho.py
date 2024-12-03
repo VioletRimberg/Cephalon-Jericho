@@ -18,7 +18,8 @@ STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
 MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
-RIVEN_PROVIDER = RivenProvider.from_gsheets
+RIVEN_PROVIDER = RivenProvider()
+RIVEN_PROVIDER.from_gsheets()
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -336,30 +337,35 @@ async def smooch(interaction: discord.Interaction):
     await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
 
 @tree.command(
-    name="weapon_look_up",
+    name="weapon_riven_stats",
     description="Query a weapons preferred riven stats.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
+async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
+    """Look up riven stats for a given weapon."""
+    weapon_name = weapon_name.strip().lower()
 
-@tree.command(
-    name="text_maintenance",
-    description="Order Cephalon Jericho to reload text precepts.",
-    guild=discord.Object(SETTINGS.GUILD_ID),
-)
-async def text_maintenance(interaction: discord.Interaction):
+    # Search for the weapon in the RivenProvider data
+    for row in RIVEN_PROVIDER.normalized_data:
+        if row["WEAPON"].strip().lower() == weapon_name:
+            best_stats = ", ".join(row["BEST STATS"])
+            desired_stats = ", ".join(row["DESIRED STATS"])
+            negative_stats = ", ".join(row["NEGATIVE STATS"]) if row["NEGATIVE STATS"] else "None"
 
-    if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
-        try:
-            global MESSAGE_PROVIDER
-            MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
-            info(f"User {interaction.user.name} attempted to refresh text google sheet data")
-            await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True)
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
-        except Exception as e:
-            info(f"Refresh failed with error: {e}")
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
-    else:
-        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
+
+            await interaction.response.send_message(
+                f"**Weapon:** {row['WEAPON']}\n"
+                f"**Best Stats:** {best_stats}\n"
+                f"**Desired Stats:** {desired_stats}\n"
+                f"**Negative Stats:** {negative_stats}"
+            )
+            return
+
+    # If no match is found
+    await interaction.response.send_message(
+        MESSAGE_PROVIDER("WEAPON_NOT_FOUND", weaponname=weapon_name),
+        ephemeral=True
+    )
 
 @tree.command(
     name="riven_maintenance",
@@ -367,18 +373,46 @@ async def text_maintenance(interaction: discord.Interaction):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def riven_maintenance(interaction: discord.Interaction):
-
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
         try:
+            # Acknowledge the interaction with a deferred response so we can follow up with more messages
+            await interaction.response.defer(ephemeral=True)
+
+            maintenance_message = await interaction.followup.send(
+                MESSAGE_PROVIDER("MAINTENANCE_RIVEN_INI"), ephemeral=True
+            )
+            info(f"Started riven update for user {interaction.user.name}")
+            
+            if maintenance_message:
+                info("Maintenance message sent successfully.")
+            else:
+                info("Failed to send maintenance message.")
+                return  # Exit the function if the message couldn't be sent
+
+            # Perform the update
             global RIVEN_PROVIDER
-            RIVEN_PROVIDER = RivenProvider.from_gsheets
-            info(f"User {interaction.user.name} attempted to refresh riven google sheet data")
-            await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_INI"), ephemeral=True)
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"), ephemeral=True)
+            RIVEN_PROVIDER = RivenProvider()  # Create an instance
+            RIVEN_PROVIDER.from_gsheets()  # Now call the instance method
+
+            # Update completed successfully
+            info("Riven update completed successfully.")
+            await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"))
+
+        except discord.errors.NotFound as e:
+            info(f"Failed to send the maintenance message: {e}")
+            await interaction.followup.send("An error occurred while trying to send the maintenance message.", ephemeral=True)
+
         except Exception as e:
             info(f"Refresh failed with error: {e}")
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_ERROR", error = e), ephemeral=True)
+            if maintenance_message:
+                info("Editing the maintenance message to indicate failure.")
+                await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_ERROR", error=e))
+            else:
+                info("Failed to retrieve the maintenance message for error handling.")
     else:
-        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user = interaction.user.display_name,), ephemeral=True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user=interaction.user.display_name),
+            ephemeral=True
+        )
 
 client.run(SETTINGS.DISCORD_TOKEN)

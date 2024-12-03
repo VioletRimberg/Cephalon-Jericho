@@ -54,9 +54,9 @@ def test_from_gsheets(monkeypatch):
         class MockResponse:
             def __init__(self):
                 self.status_code = 200
-                self.text = "Weapon,POSITIVE STATS:,NEGATIVE STATS:\nacceltra,CD MS/TOX/DMG/CC/FR,IMP/ZOOM\n"
+                self.text = "WEAPON,POSITIVE STATS:,NEGATIVE STATS:\nacceltra,CD MS/TOX/DMG/CC/FR,IMP/ZOOM\n"
         return MockResponse()
-
+    
     monkeypatch.setattr(httpx, "get", mock_httpx_get)
 
     # Initialize the provider and fetch sheets
@@ -65,7 +65,8 @@ def test_from_gsheets(monkeypatch):
 
     # Ensure the normalized data has been populated after calling from_gsheets
     assert len(provider.normalized_data) > 0
-    assert provider.normalized_data[0][1] == "acceltra"
+    # Access the weapon name correctly using the key
+    assert provider.normalized_data[0]["WEAPON"] == "acceltra"
 
 
 if __name__ == "__main__":
