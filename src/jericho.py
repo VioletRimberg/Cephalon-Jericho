@@ -3,6 +3,8 @@ from discord import app_commands
 from discord import ui
 from discord import ButtonStyle
 from discord.ui import View
+from discord.app_commands import Choice
+from discord import Interaction 
 import random
 from warframe import WarframeAPI
 from logging import warn, error, info
@@ -44,6 +46,18 @@ async def on_ready():
     info(f"Logged in as {client.user}!")
     info(f"Registered users: {REGISTERED_USERS}")
 
+def get_weapon_names():
+    # Access weapon names from RIVEN_PROVIDER's normalized_data
+    weapon_names = [weapon['WEAPON'] for weapon in RIVEN_PROVIDER.normalized_data]
+    return weapon_names
+
+async def weapon_autocomplete(interaction: Interaction, current: str):
+    weapon_names = get_weapon_names()
+    matching_weapons = [weapon for weapon in weapon_names if current.lower() in weapon.lower()]
+    #limit shown choices to provent errors with discord limits
+    choices = [Choice(name=weapon, value=weapon) for weapon in matching_weapons[:25]]
+    
+    return choices
 
 @tree.command(
     name="hello",
@@ -352,7 +366,6 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
             desired_stats = ", ".join(row["DESIRED STATS"])
             negative_stats = ", ".join(row["NEGATIVE STATS"]) if row["NEGATIVE STATS"] else "None"
 
-
             await interaction.response.send_message(
                 f"**Weapon:** {row['WEAPON']}\n"
                 f"**Best Stats:** {best_stats}\n"
@@ -361,11 +374,14 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
             )
             return
 
-    # If no match is found
     await interaction.response.send_message(
         MESSAGE_PROVIDER("WEAPON_NOT_FOUND", weaponname=weapon_name),
         ephemeral=True
     )
+    
+@weapon_look_up.autocomplete('weapon_name')
+async def autocomplete_weapon_name(interaction: Interaction, current: str):
+    return await weapon_autocomplete(interaction, current)
 
 @tree.command(
     name="riven_maintenance",
@@ -375,7 +391,6 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
 async def riven_maintenance(interaction: discord.Interaction):
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
         try:
-            # Acknowledge the interaction with a deferred response so we can follow up with more messages
             await interaction.response.defer(ephemeral=True)
 
             maintenance_message = await interaction.followup.send(
@@ -387,14 +402,13 @@ async def riven_maintenance(interaction: discord.Interaction):
                 info("Maintenance message sent successfully.")
             else:
                 info("Failed to send maintenance message.")
-                return  # Exit the function if the message couldn't be sent
+                return
 
             # Perform the update
             global RIVEN_PROVIDER
-            RIVEN_PROVIDER = RivenProvider()  # Create an instance
-            RIVEN_PROVIDER.from_gsheets()  # Now call the instance method
+            RIVEN_PROVIDER = RivenProvider()
+            RIVEN_PROVIDER.from_gsheets()  
 
-            # Update completed successfully
             info("Riven update completed successfully.")
             await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"))
 
