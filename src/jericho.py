@@ -9,6 +9,7 @@ from logging import warn, error, info
 from settings import Settings
 from state import State
 from message_provider import MessageProvider
+from riven_provider import RivenProvider
 
 discord.utils.setup_logging()
 
@@ -17,6 +18,7 @@ STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
 MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
+RIVEN_PROVIDER = RivenProvider
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -333,6 +335,7 @@ async def smooch(interaction: discord.Interaction):
     view = SmoochView()
     await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
 
+
 @tree.command(
     name="text_maintenance",
     description="Order Cephalon Jericho to reload text precepts.",
@@ -344,7 +347,7 @@ async def text_maintenance(interaction: discord.Interaction):
         try:
             global MESSAGE_PROVIDER
             MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
-            info(f"User {interaction.user.name} attempted to refresh google sheet data")
+            info(f"User {interaction.user.name} attempted to refresh text google sheet data")
             await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True)
             await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
         except Exception as e:
@@ -353,5 +356,24 @@ async def text_maintenance(interaction: discord.Interaction):
     else:
         await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
 
+@tree.command(
+    name="riven_maintenance",
+    description="Order Cephalon Jericho to reload riven precepts.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def riven_maintenance(interaction: discord.Interaction):
+
+    if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
+        try:
+            global RIVEN_PROVIDER
+            RIVEN_PROVIDER = RivenProvider
+            info(f"User {interaction.user.name} attempted to refresh riven google sheet data")
+            await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_INI"), ephemeral=True)
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"), ephemeral=True)
+        except Exception as e:
+            info(f"Refresh failed with error: {e}")
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_ERROR", error = e), ephemeral=True)
+    else:
+        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user = interaction.user.display_name,), ephemeral=True)
 
 client.run(SETTINGS.DISCORD_TOKEN)
