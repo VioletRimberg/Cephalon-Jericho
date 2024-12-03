@@ -18,7 +18,7 @@ STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
 MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
-RIVEN_PROVIDER = RivenProvider
+RIVEN_PROVIDER = RivenProvider.from_gsheets
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -335,6 +335,11 @@ async def smooch(interaction: discord.Interaction):
     view = SmoochView()
     await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
 
+@tree.command(
+    name="weapon_look_up",
+    description="Query a weapons preferred riven stats.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
 
 @tree.command(
     name="text_maintenance",
@@ -366,7 +371,7 @@ async def riven_maintenance(interaction: discord.Interaction):
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
         try:
             global RIVEN_PROVIDER
-            RIVEN_PROVIDER = RivenProvider
+            RIVEN_PROVIDER = RivenProvider.from_gsheets
             info(f"User {interaction.user.name} attempted to refresh riven google sheet data")
             await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_INI"), ephemeral=True)
             await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"), ephemeral=True)

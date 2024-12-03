@@ -29,23 +29,23 @@ def test_extract_best_and_desired_stats():
     # Test case: normal input without 'or'
     cell_1 = "MS DMG/SC/TOX"
     best, desired, negative = provider.extract_best_and_desired_stats(cell_1)  # Call on instance
-    assert best == ["MS"]
-    assert desired == ["DMG","SC", "TOX"]
-    assert negative == []
+    assert set(best) == {"MS"}
+    assert set(desired) == {"DMG", "SC", "TOX"}
+    assert set(negative) == set()
 
     # Test case: input with 'or'
     cell_2 = "MS DMG/SC/TOX or CD MS/TOX/CC/DMG"
     best, desired, negative = provider.extract_best_and_desired_stats(cell_2)  # Call on instance
-    assert best == ["MS", "CD"]
-    assert desired == ["DMG", "SC", "TOX", "MS", "TOX", "CC", "DMG"]
-    assert negative == []
+    assert set(best) == {"MS", "CD"}
+    assert set(desired) == {"DMG", "SC", "TOX", "CC"}
+    assert set(negative) == set()
 
     # Test case: input with multiple 'or's
     cell_3 = "MS DMG/SC/TOX or CD MS/TOX/CC/DMG or FR CC/TOX"
     best, desired, negative = provider.extract_best_and_desired_stats(cell_3)  # Call on instance
-    assert best == ["MS", "CD", "FR"]
-    assert desired == ["DMG", "SC", "TOX", "MS", "TOX", "CC", "DMG", "CC", "TOX"]
-    assert negative == []
+    assert set(best) == {"MS", "CD", "FR"}
+    assert set(desired) == {"DMG", "SC", "TOX", "CC"}
+    assert set(negative) == set()
 
 # Test from_gsheets to ensure the sheets are fetched and normalized (mocked HTTP request)
 def test_from_gsheets(monkeypatch):

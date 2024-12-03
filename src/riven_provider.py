@@ -18,25 +18,33 @@ class RivenProvider:
 
 
     def extract_best_and_desired_stats(self, cell: str):
-     
-        best_stats = []
-        desired_stats = []
-        negative_stats = []
-        
+        """
+        Extract best and desired stats from a cell string while ensuring no duplicates
+        and proper categorization.
+        """
+        best_stats = set()
+        desired_stats = set()
+        negative_stats = set()
+    
         options = cell.split(" or ")
-        
+    
         for option in options:
             # Split by space to separate individual stats
             stats = option.split(" ")
-            
-            # The first item will be the "best" stats (the ones separated by spaces)
-            best_stats.extend(stats[0].split("/"))  # Split by slash if necessary
-            
-            # All subsequent stats are considered "desired" stats
-            for stat in stats[1:]:
-                desired_stats.extend(stat.split("/"))  # Split by slash if necessary
+        
+            # The first group will be the "best" stats
+            for stat in stats[0].split("/"):  # Split by slash if necessary
+                best_stats.add(stat.strip())  # Use `set` to avoid duplicates
 
-        return best_stats, desired_stats, negative_stats
+            # All subsequent stats are considered "desired" stats
+            for stat_group in stats[1:]:
+                for stat in stat_group.split("/"):  # Split by slash if necessary
+                    # Only add to desired_stats if it's not already in best_stats
+                    if stat.strip() not in best_stats:
+                        desired_stats.add(stat.strip())
+
+        return list(best_stats), list(desired_stats), list(negative_stats)
+
     
     def normalize_sheet(self, sheet_name: str, input_file: str):
         """
@@ -46,13 +54,14 @@ class RivenProvider:
             reader = csv.reader(infile)
             data = list(reader)
 
-        data = data[1:]
+        data = data[1:]  # Skip the header
 
         for row in data:
             weapon = row[0]  
             positive_stats = row[1]  
             negative_stats = row[2] if len(row) > 2 else ""  
 
+            # Get unique stats
             best_stats, desired_stats, negative_stats = self.extract_best_and_desired_stats(positive_stats)
 
             # Combine all extracted data into a new row
@@ -60,6 +69,7 @@ class RivenProvider:
 
             # Add to the combined normalized data
             self.normalized_data.append(normalized_row)
+
 
     def from_gsheets(self):
         """
