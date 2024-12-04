@@ -418,8 +418,10 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
         response = MESSAGE_PROVIDER("DECENT_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
     elif riven_grade == 2:
         response = MESSAGE_PROVIDER("NEUTRAL_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
-    else:
+    elif riven_grade == 1:
         response = MESSAGE_PROVIDER("UNUSUABLE_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+    else:
+        response = MESSAGE_PROVIDER("INVALID_RIVEN_GRADE", user=interaction.user.display_name, stats=stats, weapon=weapon)
 
     # Send the final response
     await interaction.response.send_message(response)
