@@ -12,6 +12,7 @@ from settings import Settings
 from state import State
 from message_provider import MessageProvider
 from riven_provider import RivenProvider
+from riven_grader import grade_riven
 
 discord.utils.setup_logging()
 
@@ -382,6 +383,49 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
 @weapon_look_up.autocomplete('weapon_name')
 async def autocomplete_weapon_name(interaction: Interaction, current: str):
     return await weapon_autocomplete(interaction, current)
+
+@tree.command(
+    name="riven_grade",
+    description="Order Cephalon Jericho to grade a riven.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+
+async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: str):
+    # Extract weapon and stats
+    stats_list = stats.split()
+    positives = [stat for stat in stats_list if not stat.startswith('-')]
+    negatives = [stat.lstrip('-') for stat in stats_list if stat.startswith('-')]
+
+    weapon_stats = RIVEN_PROVIDER.get_weapon_stats(weapon)
+    best_stats = weapon_stats["BEST STATS"]
+    desired_stats = weapon_stats["DESIRED STATS"]
+    harmless_negatives = weapon_stats["NEGATIVE STATS"]
+
+    # Validate input
+    if not positives:
+        await interaction.response.send_message(MESSAGE_PROVIDER("INVALID_RIVEN", weapon = weapon, stats = stats), ephemeral = True)
+        return
+    
+    riven_grade = grade_riven(weapon, positives, negatives, best_stats, desired_stats, harmless_negatives)
+
+    if riven_grade == 5:
+        response = MESSAGE_PROVIDER("PERFECT_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+    elif riven_grade == 4:
+        response = MESSAGE_PROVIDER("PRESTIGIOUS_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+    elif riven_grade == 3:
+        response = MESSAGE_PROVIDER("DECENT_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+    elif riven_grade == 2:
+        response = MESSAGE_PROVIDER("NEUTRAL_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+    else:
+        response = MESSAGE_PROVIDER("UNUSUABLE_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+
+    # Proceed with grading logic
+    await interaction.response.send_message(response)
+
+@riven_grade.autocomplete('weapon')
+async def autocomplete_weapon_name_for_riven_grade(interaction: Interaction, current: str):
+    return await weapon_autocomplete(interaction, current)
+
 
 @tree.command(
     name="riven_maintenance",

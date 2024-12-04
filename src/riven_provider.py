@@ -123,5 +123,44 @@ class RivenProvider:
         print("Combined and normalized CSV created: combined_normalized_rivens.csv")
         print(f"Normalized data: {self.normalized_data[:5]}")  # Print first 5 rows for debugging
 
+    def get_weapon_stats(self, weapon: str):
+        """
+        Get the stats for a given weapon from the normalized data.
+        Returns:
+            dict: {
+                "BEST STATS": List of best stats,
+                "DESIRED STATS": List of desired stats,
+                "NEGATIVE STATS": List of negative stats
+            }
+        """
+        # Search for the weapon in the normalized data
+        for entry in self.normalized_data:
+            if entry["WEAPON"].lower() == weapon.lower():  # Case insensitive matching
+                return {
+                    "BEST STATS": entry["BEST STATS"],
+                    "DESIRED STATS": entry["DESIRED STATS"],
+                    "NEGATIVE STATS": entry["NEGATIVE STATS"]
+                }
+        
+        # If weapon is not found, return empty lists for stats
+        return {"BEST STATS": [], "DESIRED STATS": [], "NEGATIVE STATS": []}
+    
+class MockRivenProvider:
+    def __init__(self):
+        self.weapon_data = {
+            "Acceltra": {
+                "best": ["MS", "DMG", "CC"],
+                "desired": ["FR", "CD"],
+                "harmless_negatives": ["-ZOOM"]
+            },
+            "Rubico Prime": {
+                "best": ["CC", "CD", "MS"],
+                "desired": ["FR", "DMG"],
+                "harmless_negatives": ["-RELOAD"]
+            }
+        }
+    
+    def get_weapon_stats(self, weapon):
+        return self.weapon_data.get(weapon, {"best": [], "desired": [], "harmless_negatives": []})
 
 
