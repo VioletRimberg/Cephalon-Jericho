@@ -53,14 +53,22 @@ def grade_riven(
     best_matches = [stat for stat in positives if stat in best_stats]
     desired_matches = [stat for stat in positives if stat in desired_stats and stat not in best_stats]
     
-    # Grading logic
-    if len(best_matches) == len(positives) and not detrimental_negatives:
+   # Check for Perfect match (all best stats with no harmful negatives)
+    if len(best_matches) == 4 and (not detrimental_negatives or len(detrimental_negatives) == 1 and detrimental_negatives[0] in harmless_negatives):
         return 5  # Perfect
+
+    # Check for Prestigious match (at least one best stat, and the rest desired, no harmful negatives)
     elif best_matches and len(positives) == len(best_matches) + len(desired_matches) and not detrimental_negatives:
         return 4  # Prestigious
+
+    # Check for Decent match (at least half the stats desired or harmless negatives, or one best stat, no harmful negatives)
     elif (len(best_matches) >= 1 or len(desired_matches) >= len(positives) / 2) and not detrimental_negatives:
         return 3  # Decent
+
+    # Check for Neutral match (No harmful negatives)
     elif not detrimental_negatives:
         return 2  # Neutral
+
+    # If there are harmful negatives, return Unusable
     else:
         return 1  # Unusable
