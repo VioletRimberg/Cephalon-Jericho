@@ -3,7 +3,7 @@ from jinja2 import Environment
 import csv
 import httpx
 from typing import List
-from riven_provider import RivenProvider
+from .riven_provider import RivenProvider
 
 class RivenGrader:
     def __init__(self) -> None:
