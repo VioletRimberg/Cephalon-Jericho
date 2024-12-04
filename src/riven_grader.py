@@ -5,70 +5,41 @@ import httpx
 from typing import List
 from riven_provider import RivenProvider
 
-# Initialize RivenProvider
-RIVEN_PROVIDER = RivenProvider()
-RIVEN_PROVIDER.from_gsheets()
+class RivenGrader:
+    def __init__(self) -> None:
+        # Initialize the RivenProvider class inside the RivenGrader
+        self.riven_provider = RivenProvider.from_gsheets()  # Create an instance of RivenProvider
 
-def get_harmful_negatives(best_stats: List[str], desired_stats: List[str]) -> List[str]:
-    """
-    Combines best and desired stats into a harmful negatives list.
+    def grade_riven(self, weapon: str, stats: list) -> int:
+        """Grade the riven based on its stats."""
+        # Get the weapon stats from the provider
+        weapon_stats = self.riven_provider.get_weapon_stats(weapon)
 
-    Args:
-        best_stats (list[str]): Best stats for the weapon.
-        desired_stats (list[str]): Desired stats for the weapon.
+        # Extract best, desired, and negative stats from the weapon stats
+        best_stats = weapon_stats.get("BEST STAT", [])
+        desired_stats = weapon_stats.get("DESIRED STAT", [])
+        harmless_negatives = weapon_stats.get("NEGATIVE STAT", [])
+        
+        # Grading logic (adjusted as per our earlier discussion)
+        best_matches = [stat for stat in stats if stat in best_stats]
+        desired_matches = [stat for stat in stats if stat in desired_stats]
+        detrimental_negatives = [stat for stat in stats if stat not in harmless_negatives and stat not in best_stats and stat not in desired_stats]
 
-    Returns:
-        list[str]: Generalized harmful negatives.
-    """
-    return list(set(best_stats + desired_stats))
+        # Check for Perfect match
+        if len(best_matches) == 4 and (not detrimental_negatives or (len(detrimental_negatives) == 1 and detrimental_negatives[0] in harmless_negatives)):
+            return 5  # Perfect
 
-def grade_riven(
-    weapon: str,
-    positives: List[str],
-    negatives: List[str],
-    best_stats: List[str],
-    desired_stats: List[str],
-    harmless_negatives: List[str]
-) -> int:
-    """
-    Grades a riven based on weapon-specific criteria.
+        # Check for Prestigious match
+        elif best_matches and len(desired_matches) == len(stats) - len(best_matches) and not detrimental_negatives:
+            return 4  # Prestigious
 
-    Args:
-        weapon (str): Weapon name.
-        positives (list[str]): List of positive stats.
-        negatives (list[str]): List of negative stats.
-        best_stats (list[str]): Best stats for the weapon.
-        desired_stats (list[str]): Desired stats for the weapon.
-        harmless_negatives (list[str]): Harmless negatives for the weapon.
+        # Check for Decent match
+        elif (len(best_matches) >= 1 or len(desired_matches) >= len(stats) / 2) and not detrimental_negatives:
+            return 3  # Decent
 
-    Returns:
-        int: Grade from 1 (Unusable) to 5 (Perfect).
-    """
-    harmful_negatives = get_harmful_negatives(best_stats, desired_stats)
-    
-    # Classify negatives
-    detrimental_negatives = [neg for neg in negatives if neg in harmful_negatives]
-    
-    # Classify positives
-    best_matches = [stat for stat in positives if stat in best_stats]
-    desired_matches = [stat for stat in positives if stat in desired_stats and stat not in best_stats]
-    
-   # Check for Perfect match (all best stats with no harmful negatives)
-    if len(best_matches) == 4 and (not detrimental_negatives or len(detrimental_negatives) == 1 and detrimental_negatives[0] in harmless_negatives):
-        return 5  # Perfect
+        # Check for Neutral match
+        elif not detrimental_negatives:
+            return 2  # Neutral
 
-    # Check for Prestigious match (at least one best stat, and the rest desired, no harmful negatives)
-    elif best_matches and len(positives) == len(best_matches) + len(desired_matches) and not detrimental_negatives:
-        return 4  # Prestigious
-
-    # Check for Decent match (at least half the stats desired or harmless negatives, or one best stat, no harmful negatives)
-    elif (len(best_matches) >= 1 or len(desired_matches) >= len(positives) / 2) and not detrimental_negatives:
-        return 3  # Decent
-
-    # Check for Neutral match (No harmful negatives)
-    elif not detrimental_negatives:
-        return 2  # Neutral
-
-    # If there are harmful negatives, return Unusable
-    else:
+        # If harmful negatives are present
         return 1  # Unusable

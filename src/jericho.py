@@ -12,7 +12,7 @@ from settings import Settings
 from state import State
 from message_provider import MessageProvider
 from riven_provider import RivenProvider
-from riven_grader import grade_riven
+from riven_grader import RivenGrader
 
 discord.utils.setup_logging()
 
@@ -23,6 +23,7 @@ MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
 RIVEN_PROVIDER = RivenProvider()
 RIVEN_PROVIDER.from_gsheets()
+RIVEN_GRADER = RivenGrader()
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -406,7 +407,7 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
         await interaction.response.send_message(MESSAGE_PROVIDER("INVALID_RIVEN", weapon = weapon, stats = stats), ephemeral = True)
         return
     
-    riven_grade = grade_riven(weapon, positives, negatives, best_stats, desired_stats, harmless_negatives)
+    riven_grade = RIVEN_GRADER.grade_riven(weapon, positives, negatives, best_stats, desired_stats, harmless_negatives)
 
     if riven_grade == 5:
         response = MESSAGE_PROVIDER("PERFECT_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
