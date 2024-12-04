@@ -144,23 +144,6 @@ class RivenProvider:
         
         # If weapon is not found, return empty lists for stats
         return {"BEST STATS": [], "DESIRED STATS": [], "NEGATIVE STATS": []}
-    
-class MockRivenProvider:
-    def __init__(self):
-        self.weapon_data = {
-            "Acceltra": {
-                "best": ["MS", "DMG", "CC"],
-                "desired": ["FR", "CD"],
-                "harmless_negatives": ["-ZOOM"]
-            },
-            "Rubico Prime": {
-                "best": ["CC", "CD", "MS"],
-                "desired": ["FR", "DMG"],
-                "harmless_negatives": ["-RELOAD"]
-            }
-        }
-    
-    def get_weapon_stats(self, weapon):
-        return self.weapon_data.get(weapon, {"best": [], "desired": [], "harmless_negatives": []})
+
 
 

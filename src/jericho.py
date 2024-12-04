@@ -392,35 +392,36 @@ async def autocomplete_weapon_name(interaction: Interaction, current: str):
 )
 
 async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: str):
-    # Extract weapon and stats
+    # Convert the string of stats into a list
     stats_list = stats.split()
-    positives = [stat for stat in stats_list if not stat.startswith('-')]
-    negatives = [stat.lstrip('-') for stat in stats_list if stat.startswith('-')]
-
+    
+    # Get weapon stats
     weapon_stats = RIVEN_PROVIDER.get_weapon_stats(weapon)
     best_stats = weapon_stats["BEST STATS"]
     desired_stats = weapon_stats["DESIRED STATS"]
     harmless_negatives = weapon_stats["NEGATIVE STATS"]
 
     # Validate input
-    if not positives:
-        await interaction.response.send_message(MESSAGE_PROVIDER("INVALID_RIVEN", weapon = weapon, stats = stats), ephemeral = True)
+    if not stats_list:
+        await interaction.response.send_message(MESSAGE_PROVIDER("INVALID_RIVEN", weapon=weapon, stats=stats), ephemeral=True)
         return
-    
-    riven_grade = RIVEN_GRADER.grade_riven(weapon, positives, negatives, best_stats, desired_stats, harmless_negatives)
 
+    # Call the grade_riven function with the stats list
+    riven_grade = RIVEN_GRADER.grade_riven(weapon, stats_list, best_stats, desired_stats, harmless_negatives)
+
+    # Determine the response based on the grade
     if riven_grade == 5:
-        response = MESSAGE_PROVIDER("PERFECT_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+        response = MESSAGE_PROVIDER("PERFECT_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
     elif riven_grade == 4:
-        response = MESSAGE_PROVIDER("PRESTIGIOUS_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+        response = MESSAGE_PROVIDER("PRESTIGIOUS_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
     elif riven_grade == 3:
-        response = MESSAGE_PROVIDER("DECENT_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+        response = MESSAGE_PROVIDER("DECENT_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
     elif riven_grade == 2:
-        response = MESSAGE_PROVIDER("NEUTRAL_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+        response = MESSAGE_PROVIDER("NEUTRAL_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
     else:
-        response = MESSAGE_PROVIDER("UNUSUABLE_RIVEN", user = interaction.user.display_name, stats = stats, weapon = weapon)
+        response = MESSAGE_PROVIDER("UNUSUABLE_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
 
-    # Proceed with grading logic
+    # Send the final response
     await interaction.response.send_message(response)
 
 @riven_grade.autocomplete('weapon')
@@ -453,6 +454,9 @@ async def riven_maintenance(interaction: discord.Interaction):
             global RIVEN_PROVIDER
             RIVEN_PROVIDER = RivenProvider()
             RIVEN_PROVIDER.from_gsheets()  
+
+            global RIVEN_GRADER
+            RIVEN_GRADER = RivenGrader()
 
             info("Riven update completed successfully.")
             await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"))
