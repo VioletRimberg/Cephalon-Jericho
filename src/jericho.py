@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import discord
 from discord import app_commands
 from discord import ui
@@ -479,5 +482,11 @@ async def riven_maintenance(interaction: discord.Interaction):
             MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user=interaction.user.display_name),
             ephemeral=True
         )
+
+#temporary attempt to remove second hello command -> worked for Test Bot, so needs to be run once on published bot.
+async def sync(ctx):
+    # Syncs commands globally
+    await client.tree.sync()
+    await ctx.send("Commands synced!")
 
 client.run(SETTINGS.DISCORD_TOKEN)
