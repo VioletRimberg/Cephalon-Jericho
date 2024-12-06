@@ -23,7 +23,7 @@ Cephalon Jericho utilizes [Docker](https://docs.docker.com/get-docker/), for eas
 
 ## Core Functionalities
 
-While Cephalon Jericho offers a few [commands](./docs.md), its core functionality lies in being able to link a warframe users masteraccount (the pc account) to their discord user name, assigning a role tied to it and further guild specific utilities, such as an absence form and for moderators/administration an archival form. 
+While Cephalon Jericho offers a few [commands](./docs.md), its core functionality lies in being able to link a warframe users masteraccount (the pc account) to their discord user name, assigning a role tied to it and further guild specific utilities, such as an absence form and for moderators/administration an archival form. This also includes a slimmed down riven functionality, which is based on the work done in [44bananas riven excel](https://docs.google.com/spreadsheets/d/1zbaeJBuBn44cbVKzJins_E3hTDpnmvOk8heYN-G8yy8/edit?gid=1687910063#gid=1687910063).
 
 ## Settings and Environment
 
