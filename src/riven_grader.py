@@ -3,14 +3,10 @@ from jinja2 import Environment
 import csv
 import httpx
 from typing import List
-from src.riven_provider import RivenProvider
+
 
 class RivenGrader:
-    def __init__(self) -> None:
-        """Initialize the RivenGrader and automatically set up the RivenProvider."""
-        self.riven_provider = RivenProvider()  # Initialize instance of RivenProvider
-        self.riven_provider.from_gsheets()  # Call the instance method to load the data
-    
+
     def grade_riven(self, stats: list, best_stats: list, desired_stats: list, harmless_negatives: list) -> int:
         """Grade the riven based on its stats."""
     
