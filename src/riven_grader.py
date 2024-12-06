@@ -11,19 +11,16 @@ class RivenGrader:
         self.riven_provider = RivenProvider()  # Initialize instance of RivenProvider
         self.riven_provider.from_gsheets()  # Call the instance method to load the data
     
-    def grade_riven(self, weapon: str, stats: list, best_stats: list, desired_stats: list, harmless_negatives: list) -> int:
+    def grade_riven(self, stats: list, best_stats: list, desired_stats: list, harmless_negatives: list) -> int:
         """Grade the riven based on its stats."""
     
         if len(stats) < 1 or len(stats) > 4:
             return 0  # Invalid riven due to too few or too many stats
     
-        # Sort stats for consistency in classification
-        sorted_stats = sorted(stats, key=lambda stat: (stat not in best_stats, stat not in desired_stats))
-    
         # Classify stats
-        best_matches = [stat for stat in sorted_stats if stat in best_stats]
-        desired_matches = [stat for stat in sorted_stats if stat in desired_stats]
-        negative_stats = [stat for stat in sorted_stats if stat.startswith('-')]
+        best_matches = [stat for stat in stats if stat in best_stats]
+        desired_matches = [stat for stat in stats if stat in desired_stats]
+        negative_stats = [stat for stat in stats if stat.startswith('-')]
 
         harmful_negatives = [
             stat for stat in negative_stats if stat[1:] in best_stats or stat[1:] in desired_stats
@@ -36,8 +33,7 @@ class RivenGrader:
         ]
 
         # 5 = Perfect: At least one best stat, no harmful negatives, and at least one harmless negative
-        if len(best_matches) >= 1 and len(harmful_negatives) == 0:
-            if len(harmless_negatives_in_stats) >= 1 and len(stats) <= 4:
+        if len(best_matches) >= 1 and len(harmless_negatives_in_stats) == 1 and len(desired_matches) == len(stats)-1-len(best_matches):
                 return 5  # Perfect if at least one best stat, no harmful negatives, and one harmless negative
     
         # 4 = Prestigious: All desired stats, or a combination of best and desired stats, may have harmless or neutral negative
