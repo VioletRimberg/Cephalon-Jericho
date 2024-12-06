@@ -3,7 +3,7 @@ from jinja2 import Environment
 import csv
 import httpx
 from typing import List
-from .riven_provider import RivenProvider
+from src.riven_provider import RivenProvider
 
 class RivenGrader:
     def __init__(self) -> None:
@@ -14,77 +14,48 @@ class RivenGrader:
     def grade_riven(self, weapon: str, stats: list, best_stats: list, desired_stats: list, harmless_negatives: list) -> int:
         """Grade the riven based on its stats."""
     
-        # Check for invalid riven cases
         if len(stats) < 1 or len(stats) > 4:
             return 0  # Invalid riven due to too few or too many stats
+    
+        # Sort stats for consistency in classification
+        sorted_stats = sorted(stats, key=lambda stat: (stat not in best_stats, stat not in desired_stats))
+    
+        # Classify stats
+        best_matches = [stat for stat in sorted_stats if stat in best_stats]
+        desired_matches = [stat for stat in sorted_stats if stat in desired_stats]
+        negative_stats = [stat for stat in sorted_stats if stat.startswith('-')]
 
-        # Count negative stats (excluding harmless negatives)
-        negative_stats = [stat for stat in stats if stat.startswith('-')]
         harmful_negatives = [
             stat for stat in negative_stats if stat[1:] in best_stats or stat[1:] in desired_stats
         ]
-        # Harmless negatives: those that are in the harmless negatives list
         harmless_negatives_in_stats = [
-            stat for stat in stats if stat.startswith('-') and stat[1:] in harmless_negatives
+            stat for stat in negative_stats if stat[1:] in harmless_negatives
         ]
-    
-    # Count negative stats (excluding harmless negatives)
-        negative_stats = [stat for stat in stats if stat.startswith('-')]
-    
-        # More than one negative stat (not counting harmless ones) means invalid
-        if len(negative_stats) > 1 and len(harmless_negatives_in_stats) < len(negative_stats):
-            return 0  # Invalid riven due to multiple negatives
-
-        # Extract the relevant stats
-        best_matches = [stat for stat in stats if stat in best_stats]
-        desired_matches = [stat for stat in stats if stat in desired_stats]
-    
-        # Harmful negatives: those that are negative versions of best or desired stats
-        harmful_negatives = [
-            stat for stat in stats if stat.startswith('-') and (stat[1:] in best_stats or stat[1:] in desired_stats)
+        neutral_negatives = [
+            stat for stat in negative_stats if stat[1:] not in best_stats and stat[1:] not in desired_stats and stat[1:] not in harmless_negatives
         ]
+
+        # 5 = Perfect: At least one best stat, no harmful negatives, and at least one harmless negative
+        if len(best_matches) >= 1 and len(harmful_negatives) == 0:
+            if len(harmless_negatives_in_stats) >= 1 and len(stats) <= 4:
+                return 5  # Perfect if at least one best stat, no harmful negatives, and one harmless negative
     
-        # Harmless negatives: those that are in the harmless negatives list
-        harmless_negatives_in_stats = [
-            stat for stat in stats if stat.startswith('-') and stat[1:] in harmless_negatives
-        ]
+        # 4 = Prestigious: All desired stats, or a combination of best and desired stats, may have harmless or neutral negative
+        if len(best_matches) + len(desired_matches) == len(stats) and len(harmful_negatives) == 0:
+            return 4  # Prestigious if all desired stats with no harmful negative
     
-        # Check for Perfect match
-        if len(best_matches) == len(best_stats) and len(stats) <= 4:
-            # If more than best stats, they must be desired stats and total stats must not exceed 4
-            if len(stats) > len(best_matches):
-                additional_stats = stats[len(best_matches):]
-                # Check if additional stats are either desired or harmless negative
-                if not all(stat in desired_stats or (stat.startswith('-') and stat[1:] in harmless_negatives) for stat in additional_stats):
-                    return 1  # Invalid stats, not perfect
-                if len(stats) > 4:
-                    return 0  # Total stats exceed limit for Perfect
+        if len(best_matches) + len(desired_matches) > 0 and len(harmful_negatives) == 0:
+            if len(stats) == len(best_matches) + len(desired_matches) + len(harmless_negatives_in_stats) + len(neutral_negatives):
+                return 4  # Prestigious if combination of best and desired stats with harmless/neutral negatives
 
-            # Perfect requires no harmful negatives at all
-            if harmful_negatives:
-                return 1  # Harmful negative, not perfect
-        
-            # Perfect can have one harmless negative
-            if len(harmless_negatives_in_stats) > 1:
-                return 0  # More than one harmless negative, not perfect
-        
-            return 5  # Perfect
-
-        # Check for Prestigious match
-        elif (len(best_matches) >= 1 or len(desired_matches) == len(stats)) and not harmful_negatives:
-            # Prestigious can have a harmless negative or any non-detrimental negative
-            if harmless_negatives_in_stats or (len(desired_matches) + len(harmless_negatives_in_stats) >= 2):
-                return 4  # Prestigious
-
-        # Check for Decent match
-        elif len(best_matches) == 1 or len(desired_matches) + len(harmless_negatives_in_stats) >= len(stats) / 2:
-            # Decent cannot have any harmful negatives
-            if not harmful_negatives:
+        # 3 = Decent: At least one best or desired stat, the rest neutral or harmless negative, or no negative
+        if len(best_matches) == 1 or len(desired_matches) + len(harmless_negatives_in_stats) >= len(stats) / 2:
+            if len(harmful_negatives) == 0:
                 return 3  # Decent
 
-        # Check for Neutral match
-        elif not harmful_negatives:
+        # 2 = Neutral: No best or desired stats, but no harmful negative
+        if len(harmful_negatives) == 0:
             return 2  # Neutral
-
-        # If harmful negatives are present and no other conditions match
+    
+        # 1 = Unusable: Harmful negative present
         return 1  # Unusable
