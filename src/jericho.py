@@ -64,6 +64,8 @@ async def weapon_autocomplete(interaction: Interaction, current: str):
     
     return choices
 
+
+
 @tree.command(
     name="hello",
     description="Say hello to Jericho",
@@ -356,7 +358,7 @@ async def smooch(interaction: discord.Interaction):
     await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
 
 @tree.command(
-    name="weapon_riven_stats",
+    name="riven_weapon_stats",
     description="Query a weapons preferred riven stats.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
@@ -433,7 +435,57 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
 async def autocomplete_weapon_name_for_riven_grade(interaction: Interaction, current: str):
     return await weapon_autocomplete(interaction, current)
 
+class RivenHelpView(View):
+    def __init__(self, *, timeout=180):
+        super().__init__(timeout=timeout)
 
+    @discord.ui.button(label="Stats", style=ButtonStyle.primary)
+    async def riven_help_stats(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_STATS"), ephemeral= True)
+
+    @discord.ui.button(label="Weapons", style=ButtonStyle.secondary)
+    async def riven_help_weapons(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_WEAPONS"), ephemeral= True)
+
+    @discord.ui.button(label="Grading", style=ButtonStyle.secondary)
+    async def riven_help_grading(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_GRADING"), ephemeral= True)
+
+@tree.command(
+    name="riven_help",
+    description="Provides information regarding riven commands, such as stats, weapons and grading overall",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def riven_help(interaction: discord.Interaction):
+    view = RivenHelpView()
+    await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_INITIAL"), view=view, ephemeral= True)
+
+@tree.command(
+    name="text_maintenance",
+    description="Order Cephalon Jericho to reload text precepts.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def text_maintenance(interaction: discord.Interaction):
+
+    if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
+        try:
+            global MESSAGE_PROVIDER
+            MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
+            info(f"User {interaction.user.name} attempted to refresh google sheet data")
+            await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True)
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
+        except Exception as e:
+            info(f"Refresh failed with error: {e}")
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
+    else:
+        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
+        
 @tree.command(
     name="riven_maintenance",
     description="Order Cephalon Jericho to reload riven precepts.",
@@ -482,11 +534,5 @@ async def riven_maintenance(interaction: discord.Interaction):
             MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user=interaction.user.display_name),
             ephemeral=True
         )
-
-#temporary attempt to remove second hello command -> worked for Test Bot, so needs to be run once on published bot.
-async def sync(ctx):
-    # Syncs commands globally
-    await client.tree.sync()
-    await ctx.send("Commands synced!")
 
 client.run(SETTINGS.DISCORD_TOKEN)
