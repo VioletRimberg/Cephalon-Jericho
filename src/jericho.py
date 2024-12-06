@@ -1,14 +1,21 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import discord
 from discord import app_commands
 from discord import ui
 from discord import ButtonStyle
 from discord.ui import View
+from discord.app_commands import Choice
+from discord import Interaction 
 import random
 from warframe import WarframeAPI
 from logging import warn, error, info
 from settings import Settings
 from state import State
 from message_provider import MessageProvider
+from riven_provider import RivenProvider
+from riven_grader import RivenGrader
 
 discord.utils.setup_logging()
 
@@ -17,6 +24,9 @@ STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
 MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
+RIVEN_PROVIDER = RivenProvider()
+RIVEN_PROVIDER.from_gsheets()
+RIVEN_GRADER = RivenGrader()
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -40,6 +50,20 @@ async def on_ready():
                 break
     info(f"Logged in as {client.user}!")
     info(f"Registered users: {REGISTERED_USERS}")
+
+def get_weapon_names():
+    # Access weapon names from RIVEN_PROVIDER's normalized_data
+    weapon_names = [weapon['WEAPON'] for weapon in RIVEN_PROVIDER.normalized_data]
+    return weapon_names
+
+async def weapon_autocomplete(interaction: Interaction, current: str):
+    weapon_names = get_weapon_names()
+    matching_weapons = [weapon for weapon in weapon_names if current.lower() in weapon.lower()]
+    #limit shown choices to provent errors with discord limits
+    choices = [Choice(name=weapon, value=weapon) for weapon in matching_weapons[:25]]
+    
+    return choices
+
 
 
 @tree.command(
@@ -334,6 +358,115 @@ async def smooch(interaction: discord.Interaction):
     await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
 
 @tree.command(
+    name="riven_weapon_stats",
+    description="Query a weapons preferred riven stats.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
+    """Look up riven stats for a given weapon."""
+    weapon_name = weapon_name.strip().lower()
+
+    # Search for the weapon in the RivenProvider data
+    for row in RIVEN_PROVIDER.normalized_data:
+        if row["WEAPON"].strip().lower() == weapon_name:
+            best_stats = ", ".join(row["BEST STATS"])
+            desired_stats = ", ".join(row["DESIRED STATS"])
+            negative_stats = ", ".join(row["NEGATIVE STATS"]) if row["NEGATIVE STATS"] else "None"
+
+            await interaction.response.send_message(
+                f"**Weapon:** {row['WEAPON']}\n"
+                f"**Best Stats:** {best_stats}\n"
+                f"**Desired Stats:** {desired_stats}\n"
+                f"**Negative Stats:** {negative_stats}"
+            )
+            return
+
+    await interaction.response.send_message(
+        MESSAGE_PROVIDER("WEAPON_NOT_FOUND", weaponname=weapon_name),
+        ephemeral=True
+    )
+    
+@weapon_look_up.autocomplete('weapon_name')
+async def autocomplete_weapon_name(interaction: Interaction, current: str):
+    return await weapon_autocomplete(interaction, current)
+
+@tree.command(
+    name="riven_grade",
+    description="Order Cephalon Jericho to grade a riven.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+
+async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: str):
+    # Convert the string of stats into a list
+    stats_list = stats.split()
+    
+    # Get weapon stats
+    weapon_stats = RIVEN_PROVIDER.get_weapon_stats(weapon)
+    best_stats = weapon_stats["BEST STATS"]
+    desired_stats = weapon_stats["DESIRED STATS"]
+    harmless_negatives = weapon_stats["NEGATIVE STATS"]
+
+    # Validate input
+    if not stats_list:
+        await interaction.response.send_message(MESSAGE_PROVIDER("INVALID_RIVEN", weapon=weapon, stats=stats), ephemeral=True)
+        return
+
+    # Call the grade_riven function with the stats list
+    riven_grade = RIVEN_GRADER.grade_riven(weapon, stats_list, best_stats, desired_stats, harmless_negatives)
+
+    # Determine the response based on the grade
+    if riven_grade == 5:
+        response = MESSAGE_PROVIDER("PERFECT_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+    elif riven_grade == 4:
+        response = MESSAGE_PROVIDER("PRESTIGIOUS_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+    elif riven_grade == 3:
+        response = MESSAGE_PROVIDER("DECENT_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+    elif riven_grade == 2:
+        response = MESSAGE_PROVIDER("NEUTRAL_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+    elif riven_grade == 1:
+        response = MESSAGE_PROVIDER("UNUSUABLE_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+    else:
+        response = MESSAGE_PROVIDER("INVALID_RIVEN_GRADE", user=interaction.user.display_name, stats=stats, weapon=weapon)
+
+    # Send the final response
+    await interaction.response.send_message(response)
+
+@riven_grade.autocomplete('weapon')
+async def autocomplete_weapon_name_for_riven_grade(interaction: Interaction, current: str):
+    return await weapon_autocomplete(interaction, current)
+
+class RivenHelpView(View):
+    def __init__(self, *, timeout=180):
+        super().__init__(timeout=timeout)
+
+    @discord.ui.button(label="Stats", style=ButtonStyle.primary)
+    async def riven_help_stats(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_STATS"), ephemeral= True)
+
+    @discord.ui.button(label="Weapons", style=ButtonStyle.secondary)
+    async def riven_help_weapons(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_WEAPONS"), ephemeral= True)
+
+    @discord.ui.button(label="Grading", style=ButtonStyle.secondary)
+    async def riven_help_grading(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_GRADING"), ephemeral= True)
+
+@tree.command(
+    name="riven_help",
+    description="Provides information regarding riven commands, such as stats, weapons and grading overall",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def riven_help(interaction: discord.Interaction):
+    view = RivenHelpView()
+    await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_INITIAL"), view=view, ephemeral= True)
+
+@tree.command(
     name="text_maintenance",
     description="Order Cephalon Jericho to reload text precepts.",
     guild=discord.Object(SETTINGS.GUILD_ID),
@@ -352,6 +485,54 @@ async def text_maintenance(interaction: discord.Interaction):
             await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
     else:
         await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
+        
+@tree.command(
+    name="riven_maintenance",
+    description="Order Cephalon Jericho to reload riven precepts.",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def riven_maintenance(interaction: discord.Interaction):
+    if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
+        try:
+            await interaction.response.defer(ephemeral=True)
 
+            maintenance_message = await interaction.followup.send(
+                MESSAGE_PROVIDER("MAINTENANCE_RIVEN_INI"), ephemeral=True
+            )
+            info(f"Started riven update for user {interaction.user.name}")
+            
+            if maintenance_message:
+                info("Maintenance message sent successfully.")
+            else:
+                info("Failed to send maintenance message.")
+                return
+
+            # Perform the update
+            global RIVEN_PROVIDER
+            RIVEN_PROVIDER = RivenProvider()
+            RIVEN_PROVIDER.from_gsheets()  
+
+            global RIVEN_GRADER
+            RIVEN_GRADER = RivenGrader()
+
+            info("Riven update completed successfully.")
+            await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"))
+
+        except discord.errors.NotFound as e:
+            info(f"Failed to send the maintenance message: {e}")
+            await interaction.followup.send("An error occurred while trying to send the maintenance message.", ephemeral=True)
+
+        except Exception as e:
+            info(f"Refresh failed with error: {e}")
+            if maintenance_message:
+                info("Editing the maintenance message to indicate failure.")
+                await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_ERROR", error=e))
+            else:
+                info("Failed to retrieve the maintenance message for error handling.")
+    else:
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user=interaction.user.display_name),
+            ephemeral=True
+        )
 
 client.run(SETTINGS.DISCORD_TOKEN)
