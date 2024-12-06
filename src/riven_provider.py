@@ -19,35 +19,39 @@ class RivenProvider:
 
     def extract_best_and_desired_stats(self, cell: str):
         """
-        Extract best and desired stats from a cell string while ensuring no duplicates
+        Extract best, desired, and negative stats from a cell string while ensuring no duplicates
         and proper categorization.
         """
         best_stats = set()
         desired_stats = set()
         negative_stats = set()
 
+        # Split the input by "or" to process multiple clauses
         options = cell.split(" or ")
 
         for option in options:
-            # Split by space to separate individual stats
+            # Split by space to separate groups of stats
             stats = option.split(" ")
         
         # The first group will be the "best" stats
-        for stat in stats[0].split("/"):  # Split by slash if necessary
-            stat = stat.strip()
-            if stat.startswith("-"):  # If the stat starts with "-", it is a negative stat
-                negative_stats.add(stat[1:].strip())  # Add to negative stats without the "-"
-            else:
-                best_stats.add(stat)  # Otherwise, add to best stats
-
-        # All subsequent stats are considered "desired" stats
-        for stat_group in stats[1:]:
-            for stat in stat_group.split("/"):  # Split by slash if necessary
+            for stat in stats[0].split("/"):  # Split by slash if necessary
                 stat = stat.strip()
-                if stat not in best_stats and stat not in negative_stats:
-                    desired_stats.add(stat)
-        return list(best_stats), list(desired_stats), list(negative_stats)
+                if stat.startswith("-"):  # If the stat starts with "-", it's a negative stat
+                    negative_stats.add(stat[1:].strip())  # Add to negatives without the "-"
+                else:
+                    best_stats.add(stat)  # Otherwise, add to best stats
 
+            # All subsequent groups are considered "desired" stats
+            for stat_group in stats[1:]:
+                for stat in stat_group.split("/"):  # Split by slash if necessary
+                    stat = stat.strip()
+                    if stat.startswith("-"):  # Handle negative stats here as well
+                        negative_stats.add(stat[1:].strip())
+                    elif stat not in best_stats:  # Avoid duplicates
+                        desired_stats.add(stat)
+
+        # Return lists for consistency
+        return list(best_stats), list(desired_stats), list(negative_stats)
     
     def normalize_sheet(self, sheet_name: str, input_file: str):
         """
