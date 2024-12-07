@@ -48,9 +48,12 @@ async def on_ready():
             if role.id == SETTINGS.MEMBER_ROLE_ID:
                 REGISTERED_USERS[member.display_name.lower()] = member.name
                 break
+    
+    await tree.sync()
+    info("synced commands")
     info(f"Logged in as {client.user}!")
     info(f"Registered users: {REGISTERED_USERS}")
-
+    
 def get_weapon_names():
     # Access weapon names from RIVEN_PROVIDER's normalized_data
     weapon_names = [weapon['WEAPON'] for weapon in RIVEN_PROVIDER.normalized_data]
@@ -63,12 +66,6 @@ async def weapon_autocomplete(interaction: Interaction, current: str):
     choices = [Choice(name=weapon, value=weapon) for weapon in matching_weapons[:25]]
     
     return choices
-
-#temporary attempt to remove second hello command -> worked for Test Bot, so needs to be run once on published bot.
-async def sync(ctx):
-    # Syncs commands globally
-    await client.tree.sync()
-    await ctx.send("Commands synced!")
 
 @tree.command(
     name="hello",
