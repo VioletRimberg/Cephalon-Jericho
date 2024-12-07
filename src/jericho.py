@@ -64,7 +64,11 @@ async def weapon_autocomplete(interaction: Interaction, current: str):
     
     return choices
 
-
+#temporary attempt to remove second hello command -> worked for Test Bot, so needs to be run once on published bot.
+async def sync(ctx):
+    # Syncs commands globally
+    await client.tree.sync()
+    await ctx.send("Commands synced!")
 
 @tree.command(
     name="hello",
@@ -534,5 +538,7 @@ async def riven_maintenance(interaction: discord.Interaction):
             MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user=interaction.user.display_name),
             ephemeral=True
         )
+
+
 
 client.run(SETTINGS.DISCORD_TOKEN)
