@@ -41,16 +41,14 @@ async def on_ready():
     await tree.sync(guild=discord.Object(id=SETTINGS.GUILD_ID))
     guild = client.get_guild(
         SETTINGS.GUILD_ID
-    )  # Replace GUILD_ID with the actual guild ID
+    )
     members = guild.members
     for member in members:
         for role in member.roles:
             if role.id == SETTINGS.MEMBER_ROLE_ID:
                 REGISTERED_USERS[member.display_name.lower()] = member.name
                 break
-    
-    await tree.sync()
-    info("synced commands")
+
     info(f"Logged in as {client.user}!")
     info(f"Registered users: {REGISTERED_USERS}")
     
@@ -66,6 +64,27 @@ async def weapon_autocomplete(interaction: Interaction, current: str):
     choices = [Choice(name=weapon, value=weapon) for weapon in matching_weapons[:25]]
     
     return choices
+
+@tree.command(name="maintenance_sync_commands", 
+    description="Sync internal precept commands to current iteration",
+    guild=discord.Object(SETTINGS.GUILD_ID))
+async def sync_commands(interaction: discord.Interaction):
+    # Acknowledge the interaction quickly with a reply
+    if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
+        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_SYNC_INI"), ephemeral = True)
+
+        try:
+            # Perform the sync after acknowledging the interaction
+            await tree.sync(guild=discord.Object(id=SETTINGS.GUILD_ID))
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SYNC_SUCCESS"), ephemeral = True)  # Send follow-up response after sync
+        except Exception as e:
+            # Handle any potential errors
+            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SYNC_ERROR", error = {str(e)}), ephemeral = True)
+    else:
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("MAINTENANCE_SYNC_DENIED", user=interaction.user.display_name),
+            ephemeral=True
+        )
 
 @tree.command(
     name="hello",
