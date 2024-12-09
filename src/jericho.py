@@ -432,7 +432,7 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
         return
 
     # Call the grade_riven function with the stats list
-    riven_grade = RIVEN_GRADER.grade_riven(weapon, stats_list, best_stats, desired_stats, harmless_negatives)
+    riven_grade = RIVEN_GRADER.grade_riven(stats_list, best_stats, desired_stats, harmless_negatives)
 
     # Determine the response based on the grade
     if riven_grade == 5:
