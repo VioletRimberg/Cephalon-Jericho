@@ -1,5 +1,6 @@
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import discord
 from discord import app_commands
@@ -7,7 +8,7 @@ from discord import ui
 from discord import ButtonStyle
 from discord.ui import View
 from discord.app_commands import Choice
-from discord import Interaction 
+from discord import Interaction
 import random
 from warframe import WarframeAPI
 from logging import warn, error, info
@@ -39,9 +40,7 @@ tree = app_commands.CommandTree(client)
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=SETTINGS.GUILD_ID))
-    guild = client.get_guild(
-        SETTINGS.GUILD_ID
-    )
+    guild = client.get_guild(SETTINGS.GUILD_ID)
     members = guild.members
     for member in members:
         for role in member.roles:
@@ -51,40 +50,57 @@ async def on_ready():
 
     info(f"Logged in as {client.user}!")
     info(f"Registered users: {REGISTERED_USERS}")
-    
+
+
 def get_weapon_names():
     # Access weapon names from RIVEN_PROVIDER's normalized_data
-    weapon_names = [weapon['WEAPON'] for weapon in RIVEN_PROVIDER.normalized_data]
+    weapon_names = [weapon["WEAPON"] for weapon in RIVEN_PROVIDER.normalized_data]
     return weapon_names
+
 
 async def weapon_autocomplete(interaction: Interaction, current: str):
     weapon_names = get_weapon_names()
-    matching_weapons = [weapon for weapon in weapon_names if current.lower() in weapon.lower()]
-    #limit shown choices to provent errors with discord limits
+    matching_weapons = [
+        weapon for weapon in weapon_names if current.lower() in weapon.lower()
+    ]
+    # limit shown choices to provent errors with discord limits
     choices = [Choice(name=weapon, value=weapon) for weapon in matching_weapons[:25]]
-    
+
     return choices
 
-@tree.command(name="maintenance_sync_commands", 
+
+@tree.command(
+    name="maintenance_sync_commands",
     description="Sync internal precept commands to current iteration",
-    guild=discord.Object(SETTINGS.GUILD_ID))
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
 async def sync_commands(interaction: discord.Interaction):
     # Acknowledge the interaction quickly with a reply
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
-        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_SYNC_INI"), ephemeral = True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("MAINTENANCE_SYNC_INI"), ephemeral=True
+        )
 
         try:
             # Perform the sync after acknowledging the interaction
             await tree.sync(guild=discord.Object(id=SETTINGS.GUILD_ID))
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SYNC_SUCCESS"), ephemeral = True)  # Send follow-up response after sync
+            await interaction.followup.send(
+                MESSAGE_PROVIDER("MAINTENANCE_SYNC_SUCCESS"), ephemeral=True
+            )  # Send follow-up response after sync
         except Exception as e:
             # Handle any potential errors
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SYNC_ERROR", error = {str(e)}), ephemeral = True)
+            await interaction.followup.send(
+                MESSAGE_PROVIDER("MAINTENANCE_SYNC_ERROR", error={str(e)}),
+                ephemeral=True,
+            )
     else:
         await interaction.response.send_message(
-            MESSAGE_PROVIDER("MAINTENANCE_SYNC_DENIED", user=interaction.user.display_name),
-            ephemeral=True
+            MESSAGE_PROVIDER(
+                "MAINTENANCE_SYNC_DENIED", user=interaction.user.display_name
+            ),
+            ephemeral=True,
         )
+
 
 @tree.command(
     name="hello",
@@ -92,8 +108,10 @@ async def sync_commands(interaction: discord.Interaction):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def hello(ctx):
-    await ctx.response.send_message(MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
     )
+
 
 @tree.command(
     name="koumei", description="Roll a dice", guild=discord.Object(SETTINGS.GUILD_ID)
@@ -101,14 +119,23 @@ async def hello(ctx):
 async def koumei(ctx):
     random_number = random.randint(1, 6)
     if random_number == 6:
-        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_JACKPOT", user=ctx.user.display_name, number = random_number)
+        await ctx.response.send_message(
+            MESSAGE_PROVIDER(
+                "KOUMEI_JACKPOT", user=ctx.user.display_name, number=random_number
+            )
         )
     if random_number == 1:
-        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_SNAKE", user=ctx.user.display_name, number = random_number)
+        await ctx.response.send_message(
+            MESSAGE_PROVIDER(
+                "KOUMEI_SNAKE", user=ctx.user.display_name, number=random_number
+            )
         )
     else:
-        await ctx.response.send_message(MESSAGE_PROVIDER("KOUMEI_NEUTRAL", user=ctx.user.display_name, number = random_number))
-        
+        await ctx.response.send_message(
+            MESSAGE_PROVIDER(
+                "KOUMEI_NEUTRAL", user=ctx.user.display_name, number=random_number
+            )
+        )
 
 
 @tree.command(
@@ -117,24 +144,37 @@ async def koumei(ctx):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def profile(ctx: discord.Interaction, username: str):
-    # Clean the username to lower case and remove spaces
-    username = username.lower().replace(" ", "")
     # Create a placeholder message to show that we are looking up the operator
-    await ctx.response.send_message(MESSAGE_PROVIDER("PROFILE_SEARCH", user=username),ephemeral=True)
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("PROFILE_SEARCH", user=username), ephemeral=True
+    )
     # Make a request to the Warframe API to get the profile of the operator
-    profile = await WARFRAME_API.get_profile(username)
-    if profile:
+    result = await WARFRAME_API.get_profile_all_platforms(username)
+    if result:
+        profile, platform = result
         if profile.clan == SETTINGS.CLAN_NAME:
-            await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_GT", user = profile.username, mr = profile.mr)
+            await ctx.edit_original_response(
+                content=MESSAGE_PROVIDER(
+                    "PROFILE_GT",
+                    user=profile.username,
+                    mr=profile.mr,
+                    platform=platform.value,
+                )
             )
         else:
-            await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_OTHER", user = profile.username, mr = profile.mr)
+            await ctx.edit_original_response(
+                content=MESSAGE_PROVIDER(
+                    "PROFILE_OTHER",
+                    user=profile.username,
+                    mr=profile.mr,
+                    platform=platform.value,
+                )
             )
     else:
         # If the operator is not found, send a message to the user
-        await ctx.edit_original_response(content = MESSAGE_PROVIDER("PROFILE_MISSING", user = username)
+        await ctx.edit_original_response(
+            content=MESSAGE_PROVIDER("PROFILE_MISSING", user=username)
         )
-
 
 
 # Writing a report Modal
@@ -160,7 +200,9 @@ class ReportModal(ui.Modal, title="Record and Archive Notes"):
         channel = interaction.guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
         report_title = self.title_input.value
         report_summary = self.message_input.value
-        info(f"User {interaction.user.name} submitted a report {report_title} containing {report_summary}")
+        info(
+            f"User {interaction.user.name} submitted a report {report_title} containing {report_summary}"
+        )
         embed = discord.Embed(
             title=report_title,
             description=report_summary,
@@ -171,10 +213,14 @@ class ReportModal(ui.Modal, title="Record and Archive Notes"):
         )
         await channel.send(embed=embed)
 
-        await interaction.response.send_message(MESSAGE_PROVIDER("ARCHIVE_SUCCESS"),ephemeral=True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("ARCHIVE_SUCCESS"), ephemeral=True
+        )
 
     async def on_error(self, interaction: discord.Interaction):
-        await interaction.response.send_message(MESSAGE_PROVIDER("ARCHIVE_FAILURE"), ephemeral=True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("ARCHIVE_FAILURE"), ephemeral=True
+        )
 
 
 @tree.command(
@@ -185,6 +231,7 @@ class ReportModal(ui.Modal, title="Record and Archive Notes"):
 async def feedback_command(interaction: discord.Interaction):
     modal = ReportModal()
     await interaction.response.send_modal(modal)
+
 
 class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
     def __init__(self):
@@ -208,7 +255,9 @@ class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
         channel = interaction.guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
         absence_title = self.title_input.value
         absence_summary = self.message_input.value
-        info(f"User {interaction.user.name} submitted a absence {absence_title} containing {absence_summary}")
+        info(
+            f"User {interaction.user.name} submitted a absence {absence_title} containing {absence_summary}"
+        )
         embed = discord.Embed(
             title=absence_title,
             description=absence_summary,
@@ -219,10 +268,14 @@ class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
         )
         await channel.send(embed=embed)
 
-        await interaction.response.send_message(MESSAGE_PROVIDER("ABSENCE_SUCCESS"),ephemeral=True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("ABSENCE_SUCCESS"), ephemeral=True
+        )
 
     async def on_error(self, interaction: discord.Interaction):
-        await interaction.response.send_message(MESSAGE_PROVIDER("ABSENCE_FAIL"), ephemeral=True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("ABSENCE_FAIL"), ephemeral=True
+        )
 
 
 @tree.command(
@@ -233,6 +286,7 @@ class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
 async def absence_command(interaction: discord.Interaction):
     modal = AbsenceModal()
     await interaction.response.send_modal(modal)
+
 
 class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
     def __init__(self):
@@ -258,13 +312,16 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
             info(
                 f"user {interaction.user.name} tried to claim {username} which is already registered to {previously_registered_user}"
             )
-            await interaction.followup.send(MESSAGE_PROVIDER("IMPOSTER", originalname = originalname),ephemeral=True)
+            await interaction.followup.send(
+                MESSAGE_PROVIDER("IMPOSTER", originalname=originalname), ephemeral=True
+            )
 
             return
 
-        profile = await WARFRAME_API.get_profile(username)
+        result = await WARFRAME_API.get_profile_all_platforms(username)
 
-        if profile:
+        if result:
+            profile, platform = result
             if profile.clan == SETTINGS.CLAN_NAME:
                 role = guild.get_role(SETTINGS.MEMBER_ROLE_ID)
                 await member.add_roles(role)
@@ -273,17 +330,28 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
                 info(
                     f"Registered Warframe Profile {originalname} to Discord User {interaction.user.name}"
                 )
-                await interaction.followup.send(MESSAGE_PROVIDER("ROLE_REGISTERED", user = profile.username),ephemeral=True)
+                await interaction.followup.send(
+                    MESSAGE_PROVIDER("ROLE_REGISTERED", user=profile.username),
+                    ephemeral=True,
+                )
 
             else:
-                await interaction.followup.send(MESSAGE_PROVIDER("ROLE_NOT_FOUND", user = username),ephemeral=True,)
+                await interaction.followup.send(
+                    MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=username),
+                    ephemeral=True,
+                )
 
         else:
             # If the operator is not found, send a message to the user
-            await interaction.followup.send(MESSAGE_PROVIDER("ROLE_NOT_FOUND", user = username),ephemeral=True)
+            await interaction.followup.send(
+                MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=username), ephemeral=True
+            )
 
         async def on_error(self, interaction: discord.Interaction, error: Exception):
-            await interaction.response.send_message(MESSAGE_PROVIDER("ROLE_ERROR", error = error),ephemeral=True)
+            await interaction.response.send_message(
+                MESSAGE_PROVIDER("ROLE_ERROR", error=error), ephemeral=True
+            )
+
 
 class RoleView(View):
     def __init__(self, *, timeout=180):
@@ -304,7 +372,9 @@ class RoleView(View):
         role = guild.get_role(SETTINGS.GUEST_ROLE_ID)
         member = interaction.user
         await member.add_roles(role)
-        await interaction.response.send_message(MESSAGE_PROVIDER("ROLE_GUEST"), ephemeral=True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("ROLE_GUEST"), ephemeral=True
+        )
 
 
 @tree.command(
@@ -314,7 +384,8 @@ class RoleView(View):
 )
 async def role(interaction: discord.Interaction):
     view = RoleView()
-    await interaction.response.send_message(MESSAGE_PROVIDER("ROLE_INIT"),
+    await interaction.response.send_message(
+        MESSAGE_PROVIDER("ROLE_INIT"),
         view=view,
         ephemeral=True,
     )
@@ -338,7 +409,9 @@ class JudgeJerichoView(View):
         global STATE
         STATE.deathcounter += 1
         STATE.save()
-        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_NO", deathcounter = STATE.deathcounter -1))
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("AFFIRM_NO", deathcounter=STATE.deathcounter - 1)
+        )
 
 
 @tree.command(
@@ -349,6 +422,7 @@ class JudgeJerichoView(View):
 async def judge_jericho(interaction: discord.Interaction):
     view = JudgeJerichoView()
     await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM"), view=view)
+
 
 class SmoochView(View):
     def __init__(self, *, timeout=180):
@@ -368,6 +442,7 @@ class SmoochView(View):
         global STATE
         await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES"))
 
+
 @tree.command(
     name="smooch",
     description="Wait, you actually want to kiss glass?",
@@ -376,6 +451,7 @@ class SmoochView(View):
 async def smooch(interaction: discord.Interaction):
     view = SmoochView()
     await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH"), view=view)
+
 
 @tree.command(
     name="riven_weapon_stats",
@@ -391,7 +467,9 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
         if row["WEAPON"].strip().lower() == weapon_name:
             best_stats = ", ".join(row["BEST STATS"])
             desired_stats = ", ".join(row["DESIRED STATS"])
-            negative_stats = ", ".join(row["NEGATIVE STATS"]) if row["NEGATIVE STATS"] else "None"
+            negative_stats = (
+                ", ".join(row["NEGATIVE STATS"]) if row["NEGATIVE STATS"] else "None"
+            )
 
             await interaction.response.send_message(
                 f"**Weapon:** {row['WEAPON']}\n"
@@ -402,24 +480,24 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
             return
 
     await interaction.response.send_message(
-        MESSAGE_PROVIDER("WEAPON_NOT_FOUND", weaponname=weapon_name),
-        ephemeral=True
+        MESSAGE_PROVIDER("WEAPON_NOT_FOUND", weaponname=weapon_name), ephemeral=True
     )
-    
-@weapon_look_up.autocomplete('weapon_name')
+
+
+@weapon_look_up.autocomplete("weapon_name")
 async def autocomplete_weapon_name(interaction: Interaction, current: str):
     return await weapon_autocomplete(interaction, current)
+
 
 @tree.command(
     name="riven_grade",
     description="Order Cephalon Jericho to grade a riven.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
-
 async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: str):
     # Convert the string of stats into a list
     stats_list = stats.split()
-    
+
     # Get weapon stats
     weapon_stats = RIVEN_PROVIDER.get_weapon_stats(weapon)
     best_stats = weapon_stats["BEST STATS"]
@@ -428,32 +506,71 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
 
     # Validate input
     if not stats_list:
-        await interaction.response.send_message(MESSAGE_PROVIDER("INVALID_RIVEN", weapon=weapon, stats=stats), ephemeral=True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("INVALID_RIVEN", weapon=weapon, stats=stats),
+            ephemeral=True,
+        )
         return
 
     # Call the grade_riven function with the stats list
-    riven_grade = RIVEN_GRADER.grade_riven(stats_list, best_stats, desired_stats, harmless_negatives)
+    riven_grade = RIVEN_GRADER.grade_riven(
+        stats_list, best_stats, desired_stats, harmless_negatives
+    )
 
     # Determine the response based on the grade
     if riven_grade == 5:
-        response = MESSAGE_PROVIDER("PERFECT_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+        response = MESSAGE_PROVIDER(
+            "PERFECT_RIVEN",
+            user=interaction.user.display_name,
+            stats=stats,
+            weapon=weapon,
+        )
     elif riven_grade == 4:
-        response = MESSAGE_PROVIDER("PRESTIGIOUS_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+        response = MESSAGE_PROVIDER(
+            "PRESTIGIOUS_RIVEN",
+            user=interaction.user.display_name,
+            stats=stats,
+            weapon=weapon,
+        )
     elif riven_grade == 3:
-        response = MESSAGE_PROVIDER("DECENT_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+        response = MESSAGE_PROVIDER(
+            "DECENT_RIVEN",
+            user=interaction.user.display_name,
+            stats=stats,
+            weapon=weapon,
+        )
     elif riven_grade == 2:
-        response = MESSAGE_PROVIDER("NEUTRAL_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+        response = MESSAGE_PROVIDER(
+            "NEUTRAL_RIVEN",
+            user=interaction.user.display_name,
+            stats=stats,
+            weapon=weapon,
+        )
     elif riven_grade == 1:
-        response = MESSAGE_PROVIDER("UNUSUABLE_RIVEN", user=interaction.user.display_name, stats=stats, weapon=weapon)
+        response = MESSAGE_PROVIDER(
+            "UNUSUABLE_RIVEN",
+            user=interaction.user.display_name,
+            stats=stats,
+            weapon=weapon,
+        )
     else:
-        response = MESSAGE_PROVIDER("INVALID_RIVEN_GRADE", user=interaction.user.display_name, stats=stats, weapon=weapon)
+        response = MESSAGE_PROVIDER(
+            "INVALID_RIVEN_GRADE",
+            user=interaction.user.display_name,
+            stats=stats,
+            weapon=weapon,
+        )
 
     # Send the final response
     await interaction.response.send_message(response)
 
-@riven_grade.autocomplete('weapon')
-async def autocomplete_weapon_name_for_riven_grade(interaction: Interaction, current: str):
+
+@riven_grade.autocomplete("weapon")
+async def autocomplete_weapon_name_for_riven_grade(
+    interaction: Interaction, current: str
+):
     return await weapon_autocomplete(interaction, current)
+
 
 class RivenHelpView(View):
     def __init__(self, *, timeout=180):
@@ -463,19 +580,26 @@ class RivenHelpView(View):
     async def riven_help_stats(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_STATS"), ephemeral= True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("RIVEN_HELP_STATS"), ephemeral=True
+        )
 
     @discord.ui.button(label="Weapons", style=ButtonStyle.secondary)
     async def riven_help_weapons(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_WEAPONS"), ephemeral= True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("RIVEN_HELP_WEAPONS"), ephemeral=True
+        )
 
     @discord.ui.button(label="Grading", style=ButtonStyle.secondary)
     async def riven_help_grading(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_GRADING"), ephemeral= True)
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("RIVEN_HELP_GRADING"), ephemeral=True
+        )
+
 
 @tree.command(
     name="riven_help",
@@ -484,7 +608,10 @@ class RivenHelpView(View):
 )
 async def riven_help(interaction: discord.Interaction):
     view = RivenHelpView()
-    await interaction.response.send_message(MESSAGE_PROVIDER("RIVEN_HELP_INITIAL"), view=view, ephemeral= True)
+    await interaction.response.send_message(
+        MESSAGE_PROVIDER("RIVEN_HELP_INITIAL"), view=view, ephemeral=True
+    )
+
 
 @tree.command(
     name="text_maintenance",
@@ -492,20 +619,34 @@ async def riven_help(interaction: discord.Interaction):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def text_maintenance(interaction: discord.Interaction):
-
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
         try:
             global MESSAGE_PROVIDER
-            MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
+            MESSAGE_PROVIDER = MessageProvider.from_gsheets(
+                SETTINGS.MESSAGE_PROVIDER_URL
+            )
             info(f"User {interaction.user.name} attempted to refresh google sheet data")
-            await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True)
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True)
+            await interaction.response.send_message(
+                MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True
+            )
+            await interaction.followup.send(
+                MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True
+            )
         except Exception as e:
             info(f"Refresh failed with error: {e}")
-            await interaction.followup.send(MESSAGE_PROVIDER("MAINTENANCE_ERROR", error = e), ephemeral=True)
+            await interaction.followup.send(
+                MESSAGE_PROVIDER("MAINTENANCE_ERROR", error=e), ephemeral=True
+            )
     else:
-        await interaction.response.send_message(MESSAGE_PROVIDER("MAINTENANCE_DENIED", user = interaction.user.display_name,), ephemeral=True)
-        
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER(
+                "MAINTENANCE_DENIED",
+                user=interaction.user.display_name,
+            ),
+            ephemeral=True,
+        )
+
+
 @tree.command(
     name="riven_maintenance",
     description="Order Cephalon Jericho to reload riven precepts.",
@@ -520,7 +661,7 @@ async def riven_maintenance(interaction: discord.Interaction):
                 MESSAGE_PROVIDER("MAINTENANCE_RIVEN_INI"), ephemeral=True
             )
             info(f"Started riven update for user {interaction.user.name}")
-            
+
             if maintenance_message:
                 info("Maintenance message sent successfully.")
             else:
@@ -530,31 +671,39 @@ async def riven_maintenance(interaction: discord.Interaction):
             # Perform the update
             global RIVEN_PROVIDER
             RIVEN_PROVIDER = RivenProvider()
-            RIVEN_PROVIDER.from_gsheets()  
+            RIVEN_PROVIDER.from_gsheets()
 
             global RIVEN_GRADER
             RIVEN_GRADER = RivenGrader()
 
             info("Riven update completed successfully.")
-            await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS"))
+            await maintenance_message.edit(
+                content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_SUCCESS")
+            )
 
         except discord.errors.NotFound as e:
             info(f"Failed to send the maintenance message: {e}")
-            await interaction.followup.send("An error occurred while trying to send the maintenance message.", ephemeral=True)
+            await interaction.followup.send(
+                "An error occurred while trying to send the maintenance message.",
+                ephemeral=True,
+            )
 
         except Exception as e:
             info(f"Refresh failed with error: {e}")
             if maintenance_message:
                 info("Editing the maintenance message to indicate failure.")
-                await maintenance_message.edit(content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_ERROR", error=e))
+                await maintenance_message.edit(
+                    content=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_ERROR", error=e)
+                )
             else:
                 info("Failed to retrieve the maintenance message for error handling.")
     else:
         await interaction.response.send_message(
-            MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DENIED", user=interaction.user.display_name),
-            ephemeral=True
+            MESSAGE_PROVIDER(
+                "MAINTENANCE_RIVEN_DENIED", user=interaction.user.display_name
+            ),
+            ephemeral=True,
         )
-
 
 
 client.run(SETTINGS.DISCORD_TOKEN)
