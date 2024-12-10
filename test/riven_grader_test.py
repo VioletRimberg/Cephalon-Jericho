@@ -1,15 +1,16 @@
 import pytest
 from src.riven_grader import RivenGrader
 
+
 # Parameterized test cases
 @pytest.mark.parametrize(
     "positives, negatives, expected",
     [
         (["MS", "CD", "FR"], ["-ZOOM"], 5),  # Perfect
-        (["MS", "CD", "FR"], ["-SC"], 4),          # Prestigious
-        (["DMG", "MS", "TOX"], ["-SC"], 3),          # Decent
-        (["COLD", "TOX"], ["-SC"], 2),   # Neutral
-        (["FR", "CD"], ["-MS"], 1),           # Unusable
+        (["MS", "CD", "FR"], ["-SC"], 4),  # Prestigious
+        (["DMG", "MS", "TOX"], ["-SC"], 3),  # Decent
+        (["COLD", "TOX"], ["-SC"], 2),  # Neutral
+        (["FR", "CD"], ["-MS"], 1),  # Unusable
     ],
 )
 def test_grade_riven(positives, negatives, expected):
@@ -25,7 +26,9 @@ def test_grade_riven(positives, negatives, expected):
     riven_grader = RivenGrader()
 
     # Grade the riven
-    result = riven_grader.grade_riven(stats, best_stats, desired_stats, harmless_negatives)
+    result = riven_grader.grade_riven(
+        stats, best_stats, desired_stats, harmless_negatives
+    )
 
     # Assert the result matches the expected grade
     assert result == expected
