@@ -112,6 +112,46 @@ async def hello(ctx):
         MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
     )
 
+@tree.command(
+    name="tough_love",
+    description="Ask Jericho for honest advice",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def tough_love(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("TOUGH_LOVE", user=ctx.user.display_name)
+    )
+
+@tree.command(
+    name="feeling_lost",
+    description="Ask Jericho to motivate you",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def feeling_lost(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("LOST", user=ctx.user.display_name)
+    )
+
+@tree.command(
+    name="trivia",
+    description="Ask Jericho for a fact",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def trivia(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("TRIVIA", user=ctx.user.display_name)
+    )
+
+@tree.command(
+    name="rate_outfit",
+    description="Ask Jericho to ratio your drip",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def rate_outfit(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("RATE_OUTFIT", user=ctx.user.display_name)
+    )
+
 
 @tree.command(
     name="koumei", description="Roll a dice", guild=discord.Object(SETTINGS.GUILD_ID)
@@ -614,7 +654,7 @@ async def riven_help(interaction: discord.Interaction):
 
 
 @tree.command(
-    name="text_maintenance",
+    name="maintenance_text",
     description="Order Cephalon Jericho to reload text precepts.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
@@ -648,7 +688,7 @@ async def text_maintenance(interaction: discord.Interaction):
 
 
 @tree.command(
-    name="riven_maintenance",
+    name="maintenance_riven",
     description="Order Cephalon Jericho to reload riven precepts.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
