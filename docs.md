@@ -76,10 +76,15 @@ The current list of commands contains the following functions:
 - `/profile`: A form to check warframe user data, including warframe name, mastery rank and clan.
 - `/role`: Allows users to either choose member or guest roles. To verify as a member, users must enter their Warframe username, which is checked against the guild name. After verification, the corresponding role is automatically assigned. 
 - `/smooch`: Allows the user to give Cephalon Jericho a little kiss. 
-- `/text_maintenance`: Allows users with the maintenance role to refresh currently loaded google sheet for text lines
-- `/riven_maintenance`: Allows users with the maintenance role to refresh the currently loaded google sheet for rivens
+- `/maintenance_text`: Allows users with the maintenance role to refresh currently loaded google sheet for text lines
+-`/maintenance_sync_commands`: Allows users with the maintenance role to refresh currently loaded commands to remove duplicats and re-add missing commands while server is live.
+- `/maintenance_riven`: Allows users with the maintenance role to refresh the currently loaded google sheet for rivens
 - `/riven_weapon_stats`: An autosuggesting weapon query for best, desired and harmless negative stats corresponding to the weapon
 - `/riven_grade`: Grades a riven based on provided weapon and stats by scores based on 5 overall grades. This is solely based on attributes, and not the individual attribute variation roll. 
+- `/tough_love`: A social command providing harsh, but true advice.
+- `/feeling_lost`: A social command meant to cheer up and motivate.
+- `/trivia`: A social command providing a random fact about warframe.
+- `/rate_outfit`: A social command asking Jericho to rate your current outfit.
 
 ## License
 
