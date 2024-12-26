@@ -132,6 +132,25 @@ async def feeling_lost(ctx):
         MESSAGE_PROVIDER("LOST", user=ctx.user.display_name)
     )
 
+@tree.command(
+    name="trivia",
+    description="Ask Jericho for a fact",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def trivia(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("TRIVIA", user=ctx.user.display_name)
+    )
+
+@tree.command(
+    name="rate_outfit",
+    description="Ask Jericho to ratio your drip",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def rate_outfit(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("RATE_OUTFIT", user=ctx.user.display_name)
+    )
 
 
 @tree.command(
