@@ -648,14 +648,6 @@ class RivenHelpView(View):
             MESSAGE_PROVIDER("RIVEN_HELP_WEAPONS"), ephemeral=True
         )
 
-    @discord.ui.button(label="Grading", style=ButtonStyle.secondary)
-    async def riven_help_grading(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        await interaction.response.send_message(
-            MESSAGE_PROVIDER("RIVEN_HELP_GRADING"), ephemeral=True
-        )
-
 
 @tree.command(
     name="riven_help",
