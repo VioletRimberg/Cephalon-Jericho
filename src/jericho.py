@@ -550,7 +550,7 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
     # Validate if the weapon exists
     if not weapon_stats:
         await interaction.response.send_message(
-            MESSAGE_PROVIDER("INVALID_RIVEN", weaponname=weapon),
+            MESSAGE_PROVIDER("INVALID_RIVEN", weaponname=weapon, stats = stats),
         )
         return
 
