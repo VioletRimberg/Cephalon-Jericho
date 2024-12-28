@@ -538,6 +538,22 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
     # Convert the string of stats into a list
     stats_list = stats.split()
 
+    weapon = weapon.strip().lower()
+
+    # Search for the weapon in the RIVEN_PROVIDER data
+    weapon_stats = None
+    for row in RIVEN_PROVIDER.normalized_data:
+        if row["WEAPON"].strip().lower() == weapon:
+            weapon_stats = row
+            break
+
+    # Validate if the weapon exists
+    if not weapon_stats:
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("INVALID_RIVEN", weaponname=weapon),
+        )
+        return
+
     # Get weapon stats
     weapon_stats = RIVEN_PROVIDER.get_weapon_stats(weapon)
     best_stats = weapon_stats["BEST STATS"]
@@ -588,7 +604,7 @@ async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: s
         )
     elif riven_grade == 1:
         response = MESSAGE_PROVIDER(
-            "UNUSUABLE_RIVEN",
+            "UNUSABLE_RIVEN",
             user=interaction.user.display_name,
             stats=stats,
             weapon=weapon,
