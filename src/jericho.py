@@ -440,7 +440,7 @@ class JudgeJerichoView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_YES"))
+        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_YES", user=interaction.user.name))
 
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
     async def take_him_to_the_farm(
