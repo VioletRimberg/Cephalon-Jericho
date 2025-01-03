@@ -52,13 +52,17 @@ class WarframeAPI:
         self.client = httpx.AsyncClient(timeout=timeout)  # Initialize the HTTP client
 
     def _parse_profile(self, data: dict) -> Profile:
-        profile_data = data["Results"][0]
+        try:
+            profile_data = data["Results"][0]
 
-        username = profile_data["DisplayName"].replace("\ue000", "").strip()
-        mr = profile_data["PlayerLevel"]
-        clan = profile_data["GuildName"].split("#")[0]
+            username = profile_data["DisplayName"].replace("\ue000", "").strip()
+            mr = profile_data["PlayerLevel"]
+            clan = profile_data["GuildName"].split("#")[0]
 
-        return Profile(username=username, mr=mr, clan=clan)
+            return Profile(username=username, mr=mr, clan=clan)
+        except Exception as _:
+            # On some platforms we get a cut down version of the profile since it was linked to a master account on PC
+            return None
 
     def clean_username(self, username: str) -> str:
         """
