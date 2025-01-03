@@ -27,6 +27,7 @@ async def test_can_get_profile(username: str, platform: Platform):
     [
         ("LLukas22", Platform.PC),
         ("ScaledValkyrie", Platform.PS4),
+        ("LivewareProblem", Platform.PC)
     ],
 )
 @pytest.mark.asyncio
