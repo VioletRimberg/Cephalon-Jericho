@@ -5,12 +5,14 @@ from typing import Optional
 import logging
 from enum import Enum
 import asyncio
+import re
 
 class Platform(Enum):
     PC = "PC"
     PS4 = "Playstation"
     XBOX = "Xbox"
     SWITCH = "Switch"
+    UNKNOWN = "Unknown"
 
     def url(self):
         """
@@ -25,6 +27,26 @@ class Platform(Enum):
                 return "https://content-xb1.warframe.com/"
             case Platform.SWITCH:
                 return "https://content-swi.warframe.com/"
+            case Platform.UNKNOWN:
+                raise ValueError("Unknown platform")
+
+    @classmethod
+    def from_PUA(cls, PUA: str):
+        """
+        Warframe uses Unicode Private Use Area (PUA) characters at the end of usernames to denote the platform.
+        This method converts the PUA character to a Platform enum.
+        """
+        match PUA:
+            case "\ue000":
+                return Platform.PC
+            case "\ue001":
+                return Platform.XBOX
+            case "\ue002":
+                return Platform.PS4
+            case "\ue003":
+                return Platform.SWITCH
+            case _:
+                return Platform.UNKNOWN
 
 
 @dataclass
@@ -36,11 +58,14 @@ class Profile:
         username (str): The player's username.
         clan (str): The player's clan.
         mr (int): The player's mastery rank.
+        multi_platform (bool): Whether the player is registered on multiple platforms.
+        platform_names (dict[Platform, str]): A dictionary of the player's platform
     """
-
-    username: str
-    clan: str
+    username: str # The player's primary username
+    clan: str 
     mr: int
+    multi_platform: bool
+    platform_names: dict[Platform, str]
 
 
 class WarframeAPI:
@@ -51,14 +76,28 @@ class WarframeAPI:
     def __init__(self, timeout: int = 10_000):
         self.client = httpx.AsyncClient(timeout=timeout)  # Initialize the HTTP client
 
-    def _parse_profile(self, data: dict) -> Profile:
+    def _parse_profile(self, data: dict, source_platform:Platform) -> Profile:
         profile_data = data["Results"][0]
 
-        username = profile_data["DisplayName"].replace("\ue000", "").strip()
+        #Remove the Platform PUA character
+        multi_platform = "PlatformNames" in profile_data
+        if multi_platform:
+            username = profile_data["DisplayName"][:-1].strip()
+
+            all_platform_names = set([profile_data["DisplayName"]] + profile_data["PlatformNames"] if  multi_platform else [])
+            converted_platform_names = {}
+            for platform_name in all_platform_names:
+                platform = Platform.from_PUA(platform_name[-1])
+                converted_platform_names[platform] = platform_name[:-1].strip()
+        else:
+            # None multiplatform accounts will only have one platform name and dont use the PUA character
+            username = profile_data["DisplayName"]
+            converted_platform_names = {source_platform: username}
+
         mr = profile_data["PlayerLevel"]
         clan = profile_data["GuildName"].split("#")[0]
 
-        return Profile(username=username, mr=mr, clan=clan)
+        return Profile(username=username, mr=mr, clan=clan,multi_platform=multi_platform, platform_names=converted_platform_names)
 
     def clean_username(self, username: str) -> str:
         """
@@ -66,27 +105,51 @@ class WarframeAPI:
         """
         return username.strip().lower().replace(" ", "")
 
-    async def get_profile(self, username: str, platform: Platform) -> Optional[Profile]:
+    def build_url(self, username: str, platform: Platform) -> str:
+        """
+        Builds the URL for the profile endpoint.
+        """
         clean_username = self.clean_username(username)
-        url = f"{platform.url()}dynamic/getProfileViewingData.php?n={urllib.parse.quote_plus(clean_username)}"
+        return f"{platform.url()}dynamic/getProfileViewingData.php?n={urllib.parse.quote_plus(clean_username)}"
+
+    async def get_profile(self, username: str, platform: Platform) -> Optional[Profile]:
+        url = self.build_url(username, platform)
         response = await self.client.get(url)
+
+        #Check if we got a 409 response, this can happen if the user has linked their account to a different platform
+        if response.status_code == 409:
+            try:
+                message = response.text
+                match = re.search(r"Retry with (\w+) account: ([a-f0-9]+),(\w+)", message)
+                if match:
+                    platform = Platform(match.group(1))
+                    master_username = match.group(3)
+                    #Retry with the new platform
+                    logging.info(f"Retrying profile `{username}` with platform: {platform} and username: {master_username}")
+                    return await self.get_profile(master_username, platform)
+                else:
+                    logging.info(f"Didn't find user `{username}` on platform {platform}")
+            except Exception as e:
+                logging.error(f"Failed to parse platform from message: {message} with error: {e}")
         try:
             response.raise_for_status()
-            return self._parse_profile(response.json())
+            return self._parse_profile(response.json(), source_platform=platform)
         except httpx.HTTPError as e:
             logging.error(f"Failed to get profile `{username}`: {e}")
         return None
 
     async def get_profile_all_platforms(
         self, username: str
-    ) -> Optional[tuple[Profile, Platform]]:
+    ) -> Optional[Profile]:
         tasks = []
         for platform in Platform:
+            if platform == Platform.UNKNOWN:
+                continue
             tasks.append(self.get_profile(username, platform))
 
         result = await asyncio.gather(*tasks)
-        for profile, platform in zip(result, Platform):
+        for profile in result:
             if profile:
-                return profile, platform
+                return profile
 
         return None
