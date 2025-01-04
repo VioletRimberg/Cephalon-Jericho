@@ -15,7 +15,7 @@ class RivenGrader:
     ) -> int:
         """Grade the riven based on its stats."""
 
-        if len(stats) < 1 or len(stats) > 4:
+        if len(stats) < 2 or len(stats) > 4:
             return 0  # Invalid riven due to too few or too many stats
 
         # Classify stats

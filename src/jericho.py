@@ -112,6 +112,46 @@ async def hello(ctx):
         MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
     )
 
+@tree.command(
+    name="tough_love",
+    description="Ask Jericho for honest advice",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def tough_love(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("TOUGH_LOVE", user=ctx.user.display_name)
+    )
+
+@tree.command(
+    name="feeling_lost",
+    description="Ask Jericho to motivate you",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def feeling_lost(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("LOST", user=ctx.user.display_name)
+    )
+
+@tree.command(
+    name="trivia",
+    description="Ask Jericho for a fact",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def trivia(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("TRIVIA", user=ctx.user.display_name)
+    )
+
+@tree.command(
+    name="rate_outfit",
+    description="Ask Jericho to ratio your drip",
+    guild=discord.Object(SETTINGS.GUILD_ID),
+)
+async def rate_outfit(ctx):
+    await ctx.response.send_message(
+        MESSAGE_PROVIDER("RATE_OUTFIT", user=ctx.user.display_name)
+    )
+
 
 @tree.command(
     name="koumei", description="Roll a dice", guild=discord.Object(SETTINGS.GUILD_ID)
@@ -400,7 +440,7 @@ class JudgeJerichoView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_YES"))
+        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_YES", user=interaction.user.name))
 
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
     async def take_him_to_the_farm(
@@ -490,131 +530,7 @@ async def autocomplete_weapon_name(interaction: Interaction, current: str):
 
 
 @tree.command(
-    name="riven_grade",
-    description="Order Cephalon Jericho to grade a riven.",
-    guild=discord.Object(SETTINGS.GUILD_ID),
-)
-async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: str):
-    # Convert the string of stats into a list
-    stats_list = stats.split()
-
-    # Get weapon stats
-    weapon_stats = RIVEN_PROVIDER.get_weapon_stats(weapon)
-    best_stats = weapon_stats["BEST STATS"]
-    desired_stats = weapon_stats["DESIRED STATS"]
-    harmless_negatives = weapon_stats["NEGATIVE STATS"]
-
-    # Validate input
-    if not stats_list:
-        await interaction.response.send_message(
-            MESSAGE_PROVIDER("INVALID_RIVEN", weapon=weapon, stats=stats),
-            ephemeral=True,
-        )
-        return
-
-    # Call the grade_riven function with the stats list
-    riven_grade = RIVEN_GRADER.grade_riven(
-        stats_list, best_stats, desired_stats, harmless_negatives
-    )
-
-    # Determine the response based on the grade
-    if riven_grade == 5:
-        response = MESSAGE_PROVIDER(
-            "PERFECT_RIVEN",
-            user=interaction.user.display_name,
-            stats=stats,
-            weapon=weapon,
-        )
-    elif riven_grade == 4:
-        response = MESSAGE_PROVIDER(
-            "PRESTIGIOUS_RIVEN",
-            user=interaction.user.display_name,
-            stats=stats,
-            weapon=weapon,
-        )
-    elif riven_grade == 3:
-        response = MESSAGE_PROVIDER(
-            "DECENT_RIVEN",
-            user=interaction.user.display_name,
-            stats=stats,
-            weapon=weapon,
-        )
-    elif riven_grade == 2:
-        response = MESSAGE_PROVIDER(
-            "NEUTRAL_RIVEN",
-            user=interaction.user.display_name,
-            stats=stats,
-            weapon=weapon,
-        )
-    elif riven_grade == 1:
-        response = MESSAGE_PROVIDER(
-            "UNUSUABLE_RIVEN",
-            user=interaction.user.display_name,
-            stats=stats,
-            weapon=weapon,
-        )
-    else:
-        response = MESSAGE_PROVIDER(
-            "INVALID_RIVEN_GRADE",
-            user=interaction.user.display_name,
-            stats=stats,
-            weapon=weapon,
-        )
-
-    # Send the final response
-    await interaction.response.send_message(response)
-
-
-@riven_grade.autocomplete("weapon")
-async def autocomplete_weapon_name_for_riven_grade(
-    interaction: Interaction, current: str
-):
-    return await weapon_autocomplete(interaction, current)
-
-
-class RivenHelpView(View):
-    def __init__(self, *, timeout=180):
-        super().__init__(timeout=timeout)
-
-    @discord.ui.button(label="Stats", style=ButtonStyle.primary)
-    async def riven_help_stats(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        await interaction.response.send_message(
-            MESSAGE_PROVIDER("RIVEN_HELP_STATS"), ephemeral=True
-        )
-
-    @discord.ui.button(label="Weapons", style=ButtonStyle.secondary)
-    async def riven_help_weapons(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        await interaction.response.send_message(
-            MESSAGE_PROVIDER("RIVEN_HELP_WEAPONS"), ephemeral=True
-        )
-
-    @discord.ui.button(label="Grading", style=ButtonStyle.secondary)
-    async def riven_help_grading(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        await interaction.response.send_message(
-            MESSAGE_PROVIDER("RIVEN_HELP_GRADING"), ephemeral=True
-        )
-
-
-@tree.command(
-    name="riven_help",
-    description="Provides information regarding riven commands, such as stats, weapons and grading overall",
-    guild=discord.Object(SETTINGS.GUILD_ID),
-)
-async def riven_help(interaction: discord.Interaction):
-    view = RivenHelpView()
-    await interaction.response.send_message(
-        MESSAGE_PROVIDER("RIVEN_HELP_INITIAL"), view=view, ephemeral=True
-    )
-
-
-@tree.command(
-    name="text_maintenance",
+    name="maintenance_text",
     description="Order Cephalon Jericho to reload text precepts.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
@@ -648,7 +564,7 @@ async def text_maintenance(interaction: discord.Interaction):
 
 
 @tree.command(
-    name="riven_maintenance",
+    name="maintenance_riven",
     description="Order Cephalon Jericho to reload riven precepts.",
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
