@@ -1,9 +1,9 @@
 services:
   jericho:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-    image: ghcr.io/violetrimberg/cephalon-jericho:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # image: ghcr.io/violetrimberg/cephalon-jericho:latest
     restart: unless-stopped
     volumes:
       - ./state.json:/app/state.json

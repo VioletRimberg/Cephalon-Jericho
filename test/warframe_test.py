@@ -79,6 +79,19 @@ async def test_doesnt_retrieve_non_existing_profile():
     assert warframe_profile is None
 
 
+@pytest.mark.parametrize(
+    "username",
+    [
+        ("Dazzle"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_can_get_profile_without_clan(username: str):
+    api = WarframeAPI()
+    warframe_profile = await api.get_profile_all_platforms(username)
+    assert warframe_profile is not None
+
+
 @pytest.mark.asyncio
 async def test_can_make_bulk_requests():
     api = WarframeAPI()

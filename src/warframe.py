@@ -6,7 +6,7 @@ import logging
 from enum import Enum
 import asyncio
 import re
-from .utils.http import HardenedHttpClient, WARFRAME_API_SUCCESS_CODES
+from utils.http import HardenedHttpClient, WARFRAME_API_SUCCESS_CODES
 
 
 class Platform(Enum):
@@ -58,14 +58,14 @@ class Profile:
 
     Attributes:
         username (str): The player's username.
-        clan (str): The player's clan.
+        clan (Optional[str]): The player's clan.
         mr (int): The player's mastery rank.
         multi_platform (bool): Whether the player is registered on multiple platforms.
         platform_names (dict[Platform, str]): A dictionary of the player's platform
     """
 
     username: str  # The player's primary username
-    clan: str
+    clan: Optional[str]
     mr: int
     multi_platform: bool
     platform_names: dict[Platform, str]
@@ -111,7 +111,10 @@ class WarframeAPI:
             converted_platform_names = {source_platform: username}
 
         mr = profile_data["PlayerLevel"]
-        clan = profile_data["GuildName"].split("#")[0]
+        if "GuildName" in profile_data:
+            clan = profile_data["GuildName"].split("#")[0]
+        else:
+            clan = None
 
         return Profile(
             username=username,
