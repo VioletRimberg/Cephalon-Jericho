@@ -112,6 +112,7 @@ async def hello(ctx):
         MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
     )
 
+
 @tree.command(
     name="tough_love",
     description="Ask Jericho for honest advice",
@@ -121,6 +122,7 @@ async def tough_love(ctx):
     await ctx.response.send_message(
         MESSAGE_PROVIDER("TOUGH_LOVE", user=ctx.user.display_name)
     )
+
 
 @tree.command(
     name="feeling_lost",
@@ -132,6 +134,7 @@ async def feeling_lost(ctx):
         MESSAGE_PROVIDER("LOST", user=ctx.user.display_name)
     )
 
+
 @tree.command(
     name="trivia",
     description="Ask Jericho for a fact",
@@ -141,6 +144,7 @@ async def trivia(ctx):
     await ctx.response.send_message(
         MESSAGE_PROVIDER("TRIVIA", user=ctx.user.display_name)
     )
+
 
 @tree.command(
     name="rate_outfit",
@@ -440,7 +444,9 @@ class JudgeJerichoView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_YES", user=interaction.user.name))
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("AFFIRM_YES", user=interaction.user.name)
+        )
 
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
     async def take_him_to_the_farm(
