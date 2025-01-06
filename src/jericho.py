@@ -525,6 +525,7 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
 async def autocomplete_weapon_name(interaction: Interaction, current: str):
     return await weapon_autocomplete(interaction, current)
 
+
 # @tree.command(
 #     name="riven_grade",
 #     description="Order Cephalon Jericho to grade a riven.",
@@ -653,7 +654,9 @@ class RivenHelpView(View):
 async def riven_help(interaction: discord.Interaction):
     view = RivenHelpView()
     await interaction.response.send_message(
-        MESSAGE_PROVIDER("RIVEN_HELP_INITIAL"), view=view, ephemeral=True     )
+        MESSAGE_PROVIDER("RIVEN_HELP_INITIAL"), view=view, ephemeral=True
+    )
+
 
 @tree.command(
     name="maintenance_text",
