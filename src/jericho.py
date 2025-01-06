@@ -1,7 +1,3 @@
-import sys
-import os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import discord
 from discord import app_commands
 from discord import ui
@@ -11,7 +7,7 @@ from discord.app_commands import Choice
 from discord import Interaction
 import random
 from warframe import WarframeAPI
-from logging import warn, error, info
+from logging import info
 from settings import Settings
 from state import State
 from message_provider import MessageProvider
@@ -112,6 +108,7 @@ async def hello(ctx):
         MESSAGE_PROVIDER("HELLO", user=ctx.user.display_name)
     )
 
+
 @tree.command(
     name="tough_love",
     description="Ask Jericho for honest advice",
@@ -121,6 +118,7 @@ async def tough_love(ctx):
     await ctx.response.send_message(
         MESSAGE_PROVIDER("TOUGH_LOVE", user=ctx.user.display_name)
     )
+
 
 @tree.command(
     name="feeling_lost",
@@ -132,6 +130,7 @@ async def feeling_lost(ctx):
         MESSAGE_PROVIDER("LOST", user=ctx.user.display_name)
     )
 
+
 @tree.command(
     name="trivia",
     description="Ask Jericho for a fact",
@@ -141,6 +140,7 @@ async def trivia(ctx):
     await ctx.response.send_message(
         MESSAGE_PROVIDER("TRIVIA", user=ctx.user.display_name)
     )
+
 
 @tree.command(
     name="rate_outfit",
@@ -191,23 +191,19 @@ async def profile(ctx: discord.Interaction, username: str):
     # Make a request to the Warframe API to get the profile of the operator
     result = await WARFRAME_API.get_profile_all_platforms(username)
     if result:
-        profile, platform = result
+        profile = result
         if profile.clan == SETTINGS.CLAN_NAME:
             await ctx.edit_original_response(
                 content=MESSAGE_PROVIDER(
                     "PROFILE_GT",
-                    user=profile.username,
-                    mr=profile.mr,
-                    platform=platform.value,
+                    profile=profile,
                 )
             )
         else:
             await ctx.edit_original_response(
                 content=MESSAGE_PROVIDER(
                     "PROFILE_OTHER",
-                    user=profile.username,
-                    mr=profile.mr,
-                    platform=platform.value,
+                    profile=profile,
                 )
             )
     else:
@@ -358,10 +354,9 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
 
             return
 
-        result = await WARFRAME_API.get_profile_all_platforms(username)
+        profile = await WARFRAME_API.get_profile_all_platforms(username)
 
-        if result:
-            profile, platform = result
+        if profile:
             if profile.clan == SETTINGS.CLAN_NAME:
                 role = guild.get_role(SETTINGS.MEMBER_ROLE_ID)
                 await member.add_roles(role)
@@ -371,20 +366,20 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
                     f"Registered Warframe Profile {originalname} to Discord User {interaction.user.name}"
                 )
                 await interaction.followup.send(
-                    MESSAGE_PROVIDER("ROLE_REGISTERED", user=profile.username),
+                    MESSAGE_PROVIDER("ROLE_REGISTERED", user=originalname),
                     ephemeral=True,
                 )
 
             else:
                 await interaction.followup.send(
-                    MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=username),
+                    MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=originalname),
                     ephemeral=True,
                 )
 
         else:
             # If the operator is not found, send a message to the user
             await interaction.followup.send(
-                MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=username), ephemeral=True
+                MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=originalname), ephemeral=True
             )
 
         async def on_error(self, interaction: discord.Interaction, error: Exception):
@@ -440,7 +435,9 @@ class JudgeJerichoView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("AFFIRM_YES", user=interaction.user.name))
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("AFFIRM_YES", user=interaction.user.name)
+        )
 
     @discord.ui.button(label="No", style=ButtonStyle.secondary)
     async def take_him_to_the_farm(
