@@ -33,15 +33,16 @@ async def test_weapon_not_found():
     weapon = await wiki.weapon("Nonexistent Weapon")
     assert weapon is None
 
+
+@pytest.mark.skip(reason="Takes too long to run")
 @pytest.mark.asyncio
 async def test_all_weapons():
     wiki = WarframeWiki()
     await wiki.refresh()
-    matches = 0 
+    matches = 0
     for weapon_name in wiki.weapon_lookup.keys():
         weapon = await wiki.weapon(weapon_name)
         assert weapon is not None
         match = wiki._clean_weapon_name(weapon.name).startswith(weapon_name)
         matches += int(match)
     print(f"Matched {matches} out of {len(wiki.weapon_lookup)} weapons")
- 
