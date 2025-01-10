@@ -15,7 +15,18 @@ async def test_can_refresh():
 
 
 @pytest.mark.parametrize(
-    "weapon_name", ["Ack & Brunt", "Boltor", "Mausolon", "Furis", "Glaive"]
+    "weapon_name",
+    [
+        "Ack & Brunt",
+        "Boltor",
+        "Mausolon",
+        "Furis",
+        "Glaive",
+        "Cedo",
+        "Dread",
+        "Sweeper",
+        "Deconstructor",
+    ],
 )
 @pytest.mark.asyncio
 async def test_can_get_weapon(weapon_name: str):
@@ -24,6 +35,15 @@ async def test_can_get_weapon(weapon_name: str):
     weapon = await wiki.weapon(weapon_name)
     assert weapon is not None
     assert weapon.name == weapon_name
+
+
+@pytest.mark.parametrize("weapon_name", ["cryophon_mk_iii"])
+@pytest.mark.asyncio
+async def test_can_get_railjack_weapon(weapon_name: str):
+    wiki = WarframeWiki()
+    await wiki.refresh()
+    weapon = await wiki.weapon(weapon_name)
+    assert weapon is not None
 
 
 @pytest.mark.asyncio

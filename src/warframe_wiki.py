@@ -1,19 +1,9 @@
 import httpx
 from utils.http import HardenedHttpClient, DEFAULT_SUCCESS_CODES
+from model.weapon import Weapon, RivenDisposition, WeaponModType
 from bs4 import BeautifulSoup
-from pydantic import BaseModel
 from typing import Optional
 import re
-
-
-class Weapon(BaseModel):
-    name: str
-    url: str
-    image: str | None = None
-    riven_disposition: float
-    mr: int | None
-    weapon_type: str | None = None
-    slot: str | None = None
 
 
 class WarframeWiki:
@@ -64,10 +54,15 @@ class WarframeWiki:
             return None
 
         raw_disposition = extract_data("Disposition")
-        if raw_disposition:
-            disposition = float(re.search(r"\(([\d\.]+)x\)", raw_disposition).group(1))
+        match = re.search(r"([●○]+)\s\(([\d\.]+)x\)", raw_disposition)
+        if match:
+            disposition_symbol = match.group(1)
+            disposition_value = float(match.group(2))
+            disposition = RivenDisposition(
+                disposition=disposition_value, symbol=disposition_symbol
+            )
         else:
-            disposition = None
+            disposition = RivenDisposition()
         weapon_type = extract_data("Class")
         slot = extract_data("Slot")
         raw_mastery = extract_data("Mastery")
@@ -75,6 +70,8 @@ class WarframeWiki:
             mastery = int(raw_mastery)
         else:
             mastery = None
+            #
+        mod_type = WeaponModType.from_raw_data(slot, weapon_type)
 
         return Weapon(
             name=name,
@@ -84,6 +81,7 @@ class WarframeWiki:
             mr=mastery,
             weapon_type=weapon_type,
             slot=slot,
+            mod_type=mod_type,
         )
 
     async def refresh(self):
@@ -104,3 +102,8 @@ class WarframeWiki:
                     self.weapon_lookup[
                         self._clean_weapon_name(weapon.get_text().replace("\xa0", " "))
                     ] = link["href"]
+
+        riven_base_url = f"{self.base_url}/wiki/Riven_Mods"
+        response = await self.client.get(riven_base_url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text)
