@@ -1,5 +1,5 @@
 import pytest
-from src.warframe_wiki import WarframeWiki
+from src.sources import WarframeWiki
 
 
 def test_is_constructable():

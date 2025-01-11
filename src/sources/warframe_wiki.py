@@ -102,8 +102,3 @@ class WarframeWiki:
                     self.weapon_lookup[
                         self._clean_weapon_name(weapon.get_text().replace("\xa0", " "))
                     ] = link["href"]
-
-        riven_base_url = f"{self.base_url}/wiki/Riven_Mods"
-        response = await self.client.get(riven_base_url)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text)
