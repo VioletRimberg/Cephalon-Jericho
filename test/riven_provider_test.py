@@ -54,27 +54,16 @@ def test_extract_best_and_desired_stats():
     assert set(negative) == set()
 
 
-# Test from_gsheets to ensure the sheets are fetched and normalized (mocked HTTP request)
-def test_from_gsheets(monkeypatch):
-    # Mock the HTTP response for the sheets
-    def mock_httpx_get(url, *args, **kwargs):
-        class MockResponse:
-            def __init__(self):
-                self.status_code = 200
-                self.text = "WEAPON,POSITIVE STATS:,NEGATIVE STATS:\nacceltra,CD MS/TOX/DMG/CC/FR,IMP/ZOOM\n"
-
-        return MockResponse()
-
-    monkeypatch.setattr(httpx, "get", mock_httpx_get)
-
+@pytest.mark.asyncio
+async def test_from_gsheets():
     # Initialize the provider and fetch sheets
     provider = RivenProvider()
-    provider.from_gsheets()
+    await provider.from_gsheets()
 
     # Ensure the normalized data has been populated after calling from_gsheets
     assert len(provider.normalized_data) > 0
     # Access the weapon name correctly using the key
-    assert provider.normalized_data[0]["WEAPON"] == "acceltra"
+    assert "ACCELTRA" in provider.normalized_data
 
 
 if __name__ == "__main__":

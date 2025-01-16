@@ -59,13 +59,21 @@ class RivenEffect(str, Enum):
     # Additional abbreviations not in the original legend:
     ZOOM = "Zoom"
     RANGE = "Range"
-    SLA = "Slash Damage"
+    SLASH = "Slash Damage"
     HEAT = "Heat Damage"
     COLD = "Cold Damage"
     CDUR = "Combo Duration"
     CNCC = "Chance Not to Gain Combo Count"
-    AMX = "Ammo Maximum"
+    AMMO = "Ammo Maximum"
     ACCC = "Additional Combo Count Chance"
+
+    @classmethod
+    def try_parse(cls, value: str) -> "RivenEffect":
+        upper_value = value.upper().strip()
+        for effect in cls:
+            if effect.name == upper_value:
+                return effect
+        raise ValueError(f"Invalid RivenEffect: {value}")
 
     def get_stat(self, stat: float, is_negative: bool) -> float:
         """
@@ -384,8 +392,8 @@ RIVEN_EFFECT_LOOKUP: dict[RivenEffect, RivenAttribute] = {
         },
     ),
     # 17) Slash Damage
-    RivenEffect.SLA: RivenAttribute(
-        effect=RivenEffect.SLA,
+    RivenEffect.SLASH: RivenAttribute(
+        effect=RivenEffect.SLASH,
         prefix="Sci",
         suffix="Sus",
         values={
@@ -566,8 +574,8 @@ RIVEN_EFFECT_LOOKUP: dict[RivenEffect, RivenAttribute] = {
         },
     ),
     # 31) Ammo Maximum
-    RivenEffect.AMX: RivenAttribute(
-        effect=RivenEffect.AMX,
+    RivenEffect.AMMO: RivenAttribute(
+        effect=RivenEffect.AMMO,
         prefix="Ampi",
         suffix="Bin",
         values={

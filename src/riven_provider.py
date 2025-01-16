@@ -1,9 +1,28 @@
 import csv
 import httpx
+from utils.http import HardenedHttpClient
+from model.rivens import RivenEffect
+from pathlib import Path
+import asyncio
+import logging
+from pydantic import BaseModel
+from typing import Optional
+
+
+class WantedRivenStats(BaseModel):
+    best: Optional[list[RivenEffect]]
+    wanted: Optional[list[RivenEffect]]
+    wanted_negatives: Optional[list[RivenEffect]]
+
+
+class RivenRecommendations(BaseModel):
+    weapon: str
+    comment: Optional[str]
+    stats: list[WantedRivenStats]
 
 
 class RivenProvider:
-    def __init__(self) -> None:
+    def __init__(self, path: str = "./riven_data") -> None:
         self.base_url = "https://docs.google.com/spreadsheets/d/1zbaeJBuBn44cbVKzJins_E3hTDpnmvOk8heYN-G8yy8/export?format=csv&gid="
         self.sheets = {
             "Primary": "0",
@@ -12,7 +31,11 @@ class RivenProvider:
             "Archgun": "289737427",
             "Robotic": "965095749",
         }
-        self.normalized_data = []
+        self.normalized_data = {}
+        self.client = HardenedHttpClient(httpx.AsyncClient(follow_redirects=True))
+        self.directory = Path(path)
+        if not self.directory.exists():
+            self.directory.mkdir(parents=True, exist_ok=True)
 
     def extract_best_and_desired_stats(self, cell: str):
         """
@@ -54,6 +77,31 @@ class RivenProvider:
         # Return lists for consistency
         return list(best_stats), list(desired_stats), list(negative_stats)
 
+    def parse_stats(self, raw_stats: str) -> Optional[list[RivenEffect]]:
+        if raw_stats == "":
+            return None
+
+        stats = []
+        for stat in raw_stats.split("/"):
+            try:
+                stat = stat.strip()
+                if stat.startswith("-"):
+                    stat = stat[1:]
+                if stat == "ELEMENT":
+                    stats.append(RivenEffect.ELEC)
+                    stats.append(RivenEffect.TOX)
+                    stats.append(RivenEffect.HEAT)
+                    stats.append(RivenEffect.COLD)
+                elif stat == "RECOIL":
+                    stats.append(RivenEffect.REC)
+                elif stat == "AS":
+                    stats.append(RivenEffect.FR)
+                else:
+                    stats.append(RivenEffect.try_parse(stat))
+            except ValueError:
+                logging.error(f"Failed to parse stat: {stat}")
+        return stats if len(stats) > 0 else None
+
     def normalize_sheet(self, sheet_name: str, input_file: str):
         """
         Normalize the given sheet, ensuring rows are consistent and extracting best stats.
@@ -71,92 +119,101 @@ class RivenProvider:
                 "WEAPON"
             )  # Adjust to correct header name if needed
             best_stats_col = headers.index("POSITIVE STATS:")  # Adjust as needed
-            negative_stats_col = (
-                headers.index("NEGATIVE STATS:")
-                if "NEGATIVE STATS:" in headers
-                else None
-            )
+            negative_stats_col = headers.index("NEGATIVE STATS:")
+            comment_col = headers.index("Notes:")
 
         except ValueError as e:
             raise Exception(f"Missing expected columns in sheet {sheet_name}: {e}")
 
         # Process all rows after the header
         for row in data[1:]:
-            weapon = row[weapon_col]
-            positive_stats = row[best_stats_col]
-            negative_stats = []  # Default to empty list if no negative stats column is found
+            weapon = row[weapon_col].upper()
+            raw_positive_stats = row[best_stats_col].upper()
+            raw_negative_stats = row[
+                negative_stats_col
+            ].upper()  # Default to empty list if no negative stats column is found
 
-            if negative_stats_col is not None:
-                negative_stats = (
-                    row[negative_stats_col].split("/")
-                    if row[negative_stats_col]
-                    else []
-                )
+            comment = row[comment_col]
+            comment = comment if comment != "" else None
 
-            # Get unique stats
-            best_stats, desired_stats, _ = self.extract_best_and_desired_stats(
-                positive_stats
+            negatives = self.parse_stats(raw_negative_stats)
+
+            parsed_stats = []
+            for positive_slices in raw_positive_stats.split(" OR "):
+                try:
+                    splits = positive_slices.split(" ")
+                    raw_best = "/".join(splits[:-1])
+                    raw_desired = splits[-1]
+                    best = self.parse_stats(raw_best)
+                    desired = self.parse_stats(raw_desired)
+
+                    parsed_stats.append(
+                        WantedRivenStats(
+                            best=best, wanted=desired, wanted_negatives=negatives
+                        )
+                    )
+                except Exception as e:
+                    logging.error(f"Failed to parse stats for {weapon}: {e}")
+                    continue
+
+            self.normalized_data[weapon] = RivenRecommendations(
+                weapon=weapon, comment=comment, stats=parsed_stats
             )
 
-            # Combine all extracted data into a dictionary
-            normalized_row = {
-                "SHEET": sheet_name,
-                "WEAPON": weapon,
-                "BEST STATS": best_stats,
-                "DESIRED STATS": desired_stats,
-                "NEGATIVE STATS": negative_stats,
-            }
-
-            # Add to the combined normalized data
-            self.normalized_data.append(normalized_row)
-
-    def from_gsheets(self):
+    async def from_gsheets(self, force_download: bool = False):
         """
         Download and normalize all sheets from the Google Sheets URL.
         """
-        for sheet_name, gid in self.sheets.items():
+
+        async def download_sheet(sheet_name, gid) -> Path:
+            """
+            Download the sheet with the given name and GID.
+            Supports local caching to avoid redundant downloads.
+            """
+            file_path = self.directory / f"{sheet_name}.csv"
+            if file_path.exists() and not force_download:
+                logging.info(f"Skipping download of {sheet_name}.csv")
+                return file_path
             url = f"{self.base_url}{gid}"
-
-            # Fetch the sheet
-            response = httpx.get(url, follow_redirects=True)
-            if response.status_code != 200:
-                raise Exception(
-                    f"Failed to fetch CSV data for {sheet_name}: {response.status_code}"
-                )
-
-            # Save the sheet locally
-            csv_file = f"{sheet_name}.csv"
-            with open(csv_file, "w", newline="", encoding="utf-8") as file:
+            response = await self.client.get(url)
+            response.raise_for_status()
+            with open(file_path, "w", newline="", encoding="utf-8") as file:
                 file.write(response.text)
+            return file_path
 
-            # Normalize the sheet
-            self.normalize_sheet(sheet_name, csv_file)
+        tasks = [
+            download_sheet(sheet_name, gid) for sheet_name, gid in self.sheets.items()
+        ]
+        paths = await asyncio.gather(*tasks)
 
-        # Write combined CSV
-        with open(
-            "combined_normalized_rivens.csv", "w", newline="", encoding="utf-8"
-        ) as outfile:
-            writer = csv.writer(outfile)
-            writer.writerow(
-                [
-                    "SHEET",
-                    "WEAPON",
-                    "BEST STAT",
-                    "BEST STAT",
-                    "BEST STAT",
-                    "DESIRED STAT",
-                    "DESIRED STAT",
-                    "DESIRED STAT",
-                    "DESIRED STAT",
-                    "NEGATIVE STAT",
-                ]
-            )  # Header row
-            writer.writerows(self.normalized_data)
+        for path in paths:
+            sheet_name = path.stem
+            self.normalize_sheet(sheet_name, path)
 
-        print("Combined and normalized CSV created: combined_normalized_rivens.csv")
-        print(
-            f"Normalized data: {self.normalized_data[:5]}"
-        )  # Print first 5 rows for debugging
+        # with open(
+        #     "combined_normalized_rivens.csv", "w", newline="", encoding="utf-8"
+        # ) as outfile:
+        #     writer = csv.writer(outfile)
+        #     writer.writerow(
+        #         [
+        #             "SHEET",
+        #             "WEAPON",
+        #             "BEST STAT",
+        #             "BEST STAT",
+        #             "BEST STAT",
+        #             "DESIRED STAT",
+        #             "DESIRED STAT",
+        #             "DESIRED STAT",
+        #             "DESIRED STAT",
+        #             "NEGATIVE STAT",
+        #         ]
+        #     )  # Header row
+        #     writer.writerows(self.normalized_data)
+
+        # print("Combined and normalized CSV created: combined_normalized_rivens.csv")
+        # print(
+        #     f"Normalized data: {self.normalized_data[:5]}"
+        # )  # Print first 5 rows for debugging
 
     def get_weapon_stats(self, weapon: str):
         """

@@ -33,7 +33,7 @@ def test_is_constructable():
             name="Nami Solo",
             weapon="Nami Solo",
             positives=[(RivenEffect.SC, 147.5), (RivenEffect.FR, 89.6)],
-            negatives=[(RivenEffect.SLA, -83.5)],
+            negatives=[(RivenEffect.SLASH, -83.5)],
         ),  # 2 positives 1 negative
         Riven(
             name="Strun",
