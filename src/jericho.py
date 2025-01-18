@@ -5,6 +5,7 @@ from discord import ButtonStyle
 from discord.ui import View
 from discord.app_commands import Choice
 from discord import Interaction
+from discord.utils import get
 import random
 from warframe import WarframeAPI
 from logging import info
@@ -44,6 +45,7 @@ async def refresh():
     await WARFRAME_WIKI.refresh()
     RIVEN_PROVIDER = RivenRecommendationProvider()
     await RIVEN_PROVIDER.refresh(WEAPON_LOOKUP, force_download=True)
+    await WARFRAME_API.get_median_prices(WEAPON_LOOKUP)
     info(f"Data Refreshed!")
 
 
@@ -532,7 +534,11 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
     embed = discord.Embed()
     embed.title = weapon.display_name
     embed.url = wiki_data.url
-    embed.description = f"Disposition: {wiki_data.riven_disposition.symbol} ({wiki_data.riven_disposition.disposition}x)"
+    description = f"**Disposition**: {wiki_data.riven_disposition.symbol} ({wiki_data.riven_disposition.disposition}x)"
+    if weapon.median_plat_price:
+        emoji = get(interaction.guild.emojis, name="plat")
+        description += f"\n**Median Price**: {weapon.median_plat_price} {emoji if emoji else 'Platinum'}"
+    embed.description = description
     embed.set_thumbnail(url=wiki_data.image)
 
     embed.add_field(

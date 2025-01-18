@@ -21,6 +21,7 @@ class WeaponLookupEntry(BaseModel):
     wiki_url: str
     normalized_name: str
     riven_recommendations: Optional[RivenRecommendations] = None
+    median_plat_price: Optional[float] = None
 
     @property
     def can_have_rivens(self):
