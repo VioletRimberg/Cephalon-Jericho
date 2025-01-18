@@ -4,6 +4,7 @@ from model.weapon import Weapon, RivenDisposition, WeaponModType
 from bs4 import BeautifulSoup
 from typing import Optional
 import re
+from .weapon_lookup import WeaponLookup
 
 
 class WarframeWiki:
@@ -11,32 +12,27 @@ class WarframeWiki:
     A class to interact with the Warframe Wiki
     """
 
-    def __init__(self, timeout: int = 10_000):
+    def __init__(
+        self, weapon_lookup: WeaponLookup = WeaponLookup(), timeout: int = 10_000
+    ):
         self.base_url = "https://warframe.fandom.com"
         self.client = HardenedHttpClient(
             httpx.AsyncClient(timeout=timeout), success_codes=DEFAULT_SUCCESS_CODES
         )  # Initialize the HTTP client
-        self.weapon_lookup = {}
-
-    def _clean_weapon_name(self, weapon_name: str) -> str:
-        """
-        Clean the weapon name for use in the wiki URL
-        """
-        return weapon_name.replace(" ", "_").lower()
+        self.weapon_lookup = weapon_lookup
 
     async def weapon(self, weapon_name: str) -> Weapon:
         """
         Get the wiki page for a weapon
         """
-        normalized_weapon_name = self._clean_weapon_name(weapon_name)
-        if normalized_weapon_name not in self.weapon_lookup:
+        if weapon_name not in self.weapon_lookup:
             return None
 
-        url = self.base_url + self.weapon_lookup[normalized_weapon_name]
+        url = self.base_url + self.weapon_lookup[weapon_name].wiki_url
         response = await self.client.get(url)
         response.raise_for_status()
 
-        soup = BeautifulSoup(response.text)
+        soup = BeautifulSoup(response.text, features="html.parser")
 
         header_contanier = soup.find("h1", id="firstHeading").find("span")
         name = header_contanier.text
@@ -84,21 +80,37 @@ class WarframeWiki:
             mod_type=mod_type,
         )
 
+    def mark_riven_capable(self, weapon_name: str):
+        """
+        Mark a weapon as riven capable
+        """
+        if weapon_name in self.weapon_lookup:
+            self.weapon_lookup[weapon_name].can_have_rivens = True
+
     async def refresh(self):
         """
         Refresh the wiki data
         """
-        self.weapon_lookup = {}
         weapon_base_url = f"{self.base_url}/wiki/Weapons#Primary"
         response = await self.client.get(weapon_base_url)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text)
+        soup = BeautifulSoup(response.text, features="html.parser")
         table = soup.find("div", class_="wds-tab__content wds-is-current")
         if table:
             weapons = table.find_all("span", style="border-bottom:2px dotted; color:;")
             for weapon in weapons:
                 link = weapon.find_parent("a")
                 if link and "href" in link.attrs:
-                    self.weapon_lookup[
-                        self._clean_weapon_name(weapon.get_text().replace("\xa0", " "))
-                    ] = link["href"]
+                    self.weapon_lookup.add(
+                        weapon.get_text().replace("\xa0", " "), link["href"]
+                    )
+
+        # Manually add the kitgun chambers since they are not in the weapon list
+        self.weapon_lookup.add("Catchmoon", "/wiki/Catchmoon")
+        self.weapon_lookup.add("Gaze", "/wiki/Gaze")
+        self.weapon_lookup.add("Rattleguts", "/wiki/Rattleguts")
+        self.weapon_lookup.add("Sporelacer", "/wiki/Sporelacer")
+        self.weapon_lookup.add("Tombfinger", "/wiki/Tombfinger")
+        self.weapon_lookup.add("Vermisplicer", "/wiki/Vermisplicer")
+        # Ok no idea why this isnt in the weapon list but we need to add it
+        self.weapon_lookup.add("Dark Split-Sword", "/wiki/Dark_Split-Sword")

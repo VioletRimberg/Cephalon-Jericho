@@ -26,6 +26,7 @@ async def test_can_refresh():
         "Dread",
         "Sweeper",
         "Deconstructor",
+        "Tombfinger",  # Kitgun chamber
     ],
 )
 @pytest.mark.asyncio
@@ -66,3 +67,12 @@ async def test_all_weapons():
         match = wiki._clean_weapon_name(weapon.name).startswith(weapon_name)
         matches += int(match)
     print(f"Matched {matches} out of {len(wiki.weapon_lookup)} weapons")
+
+
+@pytest.mark.asyncio
+async def test_fuzzy_search():
+    wiki = WarframeWiki()
+    await wiki.refresh()
+    matches = wiki.weapon_lookup.fuzzy_search("Bolt")
+    assert len(matches) > 0
+    assert any(match.display_name == "Boltor" for match in matches)

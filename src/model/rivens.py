@@ -75,6 +75,18 @@ class RivenEffect(str, Enum):
                 return effect
         raise ValueError(f"Invalid RivenEffect: {value}")
 
+    def render(self, weapon_type: WeaponModType) -> str:
+        """
+        Render the effect as a string for the given weapon type
+        """
+        if self == RivenEffect.DMG:
+            return "Melee Damage" if weapon_type == WeaponModType.Melee else "Damage"
+
+        if self == RivenEffect.FR:
+            return "Attack Speed" if weapon_type == WeaponModType.Melee else "Fire Rate"
+
+        return self.value
+
     def get_stat(self, stat: float, is_negative: bool) -> float:
         """
         Apply inversion and nagative denominator to the stat

@@ -2,26 +2,14 @@ import csv
 import httpx
 from utils.http import HardenedHttpClient
 from model.rivens import RivenEffect
+from sources.weapon_lookup import WantedRivenStats, RivenRecommendations, WeaponLookup
 from pathlib import Path
 import asyncio
 import logging
-from pydantic import BaseModel
 from typing import Optional
 
 
-class WantedRivenStats(BaseModel):
-    best: Optional[list[RivenEffect]]
-    wanted: Optional[list[RivenEffect]]
-    wanted_negatives: Optional[list[RivenEffect]]
-
-
-class RivenRecommendations(BaseModel):
-    weapon: str
-    comment: Optional[str]
-    stats: list[WantedRivenStats]
-
-
-class RivenProvider:
+class RivenRecommendationProvider:
     def __init__(self, path: str = "./riven_data") -> None:
         self.base_url = "https://docs.google.com/spreadsheets/d/1zbaeJBuBn44cbVKzJins_E3hTDpnmvOk8heYN-G8yy8/export?format=csv&gid="
         self.sheets = {
@@ -31,51 +19,10 @@ class RivenProvider:
             "Archgun": "289737427",
             "Robotic": "965095749",
         }
-        self.normalized_data = {}
         self.client = HardenedHttpClient(httpx.AsyncClient(follow_redirects=True))
         self.directory = Path(path)
         if not self.directory.exists():
             self.directory.mkdir(parents=True, exist_ok=True)
-
-    def extract_best_and_desired_stats(self, cell: str):
-        """
-        Extract best, desired, and negative stats from a cell string while ensuring no duplicates
-        and proper categorization.
-        """
-        best_stats = set()
-        desired_stats = set()
-        negative_stats = set()
-
-        # Split the input by "or" to process multiple clauses
-        options = cell.split(" or ")
-
-        for option in options:
-            # Split by space to separate groups of stats
-            stats = option.split(" ")
-
-            # The first group will be the "best" stats
-            for stat in stats[0].split("/"):  # Split by slash if necessary
-                stat = stat.strip()
-                if stat.startswith(
-                    "-"
-                ):  # If the stat starts with "-", it's a negative stat
-                    negative_stats.add(
-                        stat[1:].strip()
-                    )  # Add to negatives without the "-"
-                else:
-                    best_stats.add(stat)  # Otherwise, add to best stats
-
-            # All subsequent groups are considered "desired" stats
-            for stat_group in stats[1:]:
-                for stat in stat_group.split("/"):  # Split by slash if necessary
-                    stat = stat.strip()
-                    if stat.startswith("-"):  # Handle negative stats here as well
-                        negative_stats.add(stat[1:].strip())
-                    elif stat not in best_stats:  # Avoid duplicates
-                        desired_stats.add(stat)
-
-        # Return lists for consistency
-        return list(best_stats), list(desired_stats), list(negative_stats)
 
     def parse_stats(self, raw_stats: str) -> Optional[list[RivenEffect]]:
         if raw_stats == "":
@@ -102,7 +49,9 @@ class RivenProvider:
                 logging.error(f"Failed to parse stat: {stat}")
         return stats if len(stats) > 0 else None
 
-    def normalize_sheet(self, sheet_name: str, input_file: str):
+    def normalize_sheet(
+        self, sheet_name: str, input_file: str, weapon_lookup: WeaponLookup
+    ):
         """
         Normalize the given sheet, ensuring rows are consistent and extracting best stats.
         This function dynamically adjusts to column positions based on the header row.
@@ -135,6 +84,8 @@ class RivenProvider:
 
             comment = row[comment_col]
             comment = comment if comment != "" else None
+            if comment:
+                comment = comment.strip().replace("(NOTE: ", "").replace(")", "")
 
             negatives = self.parse_stats(raw_negative_stats)
 
@@ -156,11 +107,15 @@ class RivenProvider:
                     logging.error(f"Failed to parse stats for {weapon}: {e}")
                     continue
 
-            self.normalized_data[weapon] = RivenRecommendations(
+            if weapon not in weapon_lookup:
+                logging.error(f"Unknown weapon {weapon} in sheet {sheet_name}")
+                continue
+
+            weapon_lookup[weapon].riven_recommendations = RivenRecommendations(
                 weapon=weapon, comment=comment, stats=parsed_stats
             )
 
-    async def from_gsheets(self, force_download: bool = False):
+    async def refresh(self, weapon_lookup: WeaponLookup, force_download: bool = False):
         """
         Download and normalize all sheets from the Google Sheets URL.
         """
@@ -188,51 +143,4 @@ class RivenProvider:
 
         for path in paths:
             sheet_name = path.stem
-            self.normalize_sheet(sheet_name, path)
-
-        # with open(
-        #     "combined_normalized_rivens.csv", "w", newline="", encoding="utf-8"
-        # ) as outfile:
-        #     writer = csv.writer(outfile)
-        #     writer.writerow(
-        #         [
-        #             "SHEET",
-        #             "WEAPON",
-        #             "BEST STAT",
-        #             "BEST STAT",
-        #             "BEST STAT",
-        #             "DESIRED STAT",
-        #             "DESIRED STAT",
-        #             "DESIRED STAT",
-        #             "DESIRED STAT",
-        #             "NEGATIVE STAT",
-        #         ]
-        #     )  # Header row
-        #     writer.writerows(self.normalized_data)
-
-        # print("Combined and normalized CSV created: combined_normalized_rivens.csv")
-        # print(
-        #     f"Normalized data: {self.normalized_data[:5]}"
-        # )  # Print first 5 rows for debugging
-
-    def get_weapon_stats(self, weapon: str):
-        """
-        Get the stats for a given weapon from the normalized data.
-        Returns:
-            dict: {
-                "BEST STATS": List of best stats,
-                "DESIRED STATS": List of desired stats,
-                "NEGATIVE STATS": List of negative stats
-            }
-        """
-        # Search for the weapon in the normalized data
-        for entry in self.normalized_data:
-            if entry["WEAPON"].lower() == weapon.lower():  # Case insensitive matching
-                return {
-                    "BEST STATS": entry["BEST STATS"],
-                    "DESIRED STATS": entry["DESIRED STATS"],
-                    "NEGATIVE STATS": entry["NEGATIVE STATS"],
-                }
-
-        # If weapon is not found, return empty lists for stats
-        return {"BEST STATS": [], "DESIRED STATS": [], "NEGATIVE STATS": []}
+            self.normalize_sheet(sheet_name, path, weapon_lookup)
