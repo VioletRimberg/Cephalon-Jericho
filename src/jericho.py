@@ -67,7 +67,7 @@ async def weapon_autocomplete(interaction: Interaction, current: str):
 
 @tree.command(
     name="maintenance_sync_commands",
-    description="Sync internal precept commands to current iteration",
+    description=MESSAGE_PROVIDER("MAINTENANCE_SYNC_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def sync_commands(interaction: discord.Interaction):
@@ -100,7 +100,7 @@ async def sync_commands(interaction: discord.Interaction):
 
 @tree.command(
     name="hello",
-    description="Say hello to Jericho",
+    description=MESSAGE_PROVIDER("HELLO_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def hello(ctx):
@@ -111,7 +111,7 @@ async def hello(ctx):
 
 @tree.command(
     name="tough_love",
-    description="Ask Jericho for honest advice",
+    description=MESSAGE_PROVIDER("TOUGH_LOVE_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def tough_love(ctx):
@@ -122,7 +122,7 @@ async def tough_love(ctx):
 
 @tree.command(
     name="feeling_lost",
-    description="Ask Jericho to motivate you",
+    description=MESSAGE_PROVIDER("LOST_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def feeling_lost(ctx):
@@ -133,7 +133,7 @@ async def feeling_lost(ctx):
 
 @tree.command(
     name="trivia",
-    description="Ask Jericho for a fact",
+    description=MESSAGE_PROVIDER("TRIVIA_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def trivia(ctx):
@@ -144,7 +144,7 @@ async def trivia(ctx):
 
 @tree.command(
     name="rate_outfit",
-    description="Ask Jericho to ratio your drip",
+    description=MESSAGE_PROVIDER("RATE_OUTFIT_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def rate_outfit(ctx):
@@ -154,7 +154,7 @@ async def rate_outfit(ctx):
 
 
 @tree.command(
-    name="koumei", description="Roll a dice", guild=discord.Object(SETTINGS.GUILD_ID)
+    name="koumei", description=MESSAGE_PROVIDER("KOUMEI_DESC"), guild=discord.Object(SETTINGS.GUILD_ID)
 )
 async def koumei(ctx):
     random_number = random.randint(1, 6)
@@ -180,7 +180,7 @@ async def koumei(ctx):
 
 @tree.command(
     name="profile",
-    description="Query a Warframe profile.",
+    description=MESSAGE_PROVIDER("PROFILE_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def profile(ctx: discord.Interaction, username: str):
@@ -261,7 +261,7 @@ class ReportModal(ui.Modal, title="Record and Archive Notes"):
 
 @tree.command(
     name="archive",
-    description="A self-archiving form for note-taking and records",
+    description=MESSAGE_PROVIDER("ARCHIVE_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def feedback_command(interaction: discord.Interaction):
@@ -316,7 +316,7 @@ class AbsenceModal(ui.Modal, title="Submit and Confirm Absences"):
 
 @tree.command(
     name="absence",
-    description="A self reporting absence form",
+    description=MESSAGE_PROVIDER("ABSENCE_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def absence_command(interaction: discord.Interaction):
@@ -414,7 +414,7 @@ class RoleView(View):
 
 @tree.command(
     name="role",
-    description="Assign yourself a role, and get access to the server.",
+    description=MESSAGE_PROVIDER("ROLE_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def role(interaction: discord.Interaction):
@@ -453,7 +453,7 @@ class JudgeJerichoView(View):
 
 @tree.command(
     name="judge_jericho",
-    description="Has Jericho been a good Cephalon?",
+    description=MESSAGE_PROVIDER("JUDGE_JERICHO_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def judge_jericho(interaction: discord.Interaction):
@@ -482,7 +482,7 @@ class SmoochView(View):
 
 @tree.command(
     name="smooch",
-    description="Wait, you actually want to kiss glass?",
+    description=MESSAGE_PROVIDER("SMOOCH_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def smooch(interaction: discord.Interaction):
@@ -492,7 +492,7 @@ async def smooch(interaction: discord.Interaction):
 
 @tree.command(
     name="riven_weapon_stats",
-    description="Query a weapons preferred riven stats.",
+    description=MESSAGE_PROVIDER("WEAPON_QUERY_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
@@ -528,7 +528,7 @@ async def autocomplete_weapon_name(interaction: Interaction, current: str):
 
 # @tree.command(
 #     name="riven_grade",
-#     description="Order Cephalon Jericho to grade a riven.",
+#     description=MESSAGE_PROVIDER("RIVEN_GRADE_DESC"),
 #     guild=discord.Object(SETTINGS.GUILD_ID),
 # )
 # async def riven_grade(interaction: discord.Interaction, weapon: str, *, stats: str):
@@ -648,7 +648,7 @@ class RivenHelpView(View):
 
 @tree.command(
     name="riven_help",
-    description="Provides information regarding riven commands, such as stats, weapons and grading overall",
+    description=MESSAGE_PROVIDER("RIVEN_HELP_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def riven_help(interaction: discord.Interaction):
@@ -660,7 +660,7 @@ async def riven_help(interaction: discord.Interaction):
 
 @tree.command(
     name="maintenance_text",
-    description="Order Cephalon Jericho to reload text precepts.",
+    description=MESSAGE_PROVIDER("MAINTENANCE_TEXT_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def text_maintenance(interaction: discord.Interaction):
@@ -694,7 +694,7 @@ async def text_maintenance(interaction: discord.Interaction):
 
 @tree.command(
     name="maintenance_riven",
-    description="Order Cephalon Jericho to reload riven precepts.",
+    description=MESSAGE_PROVIDER("MAINTENANCE_RIVEN_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def riven_maintenance(interaction: discord.Interaction):
