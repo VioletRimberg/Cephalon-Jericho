@@ -46,6 +46,7 @@ async def refresh():
     RIVEN_PROVIDER = RivenRecommendationProvider()
     await RIVEN_PROVIDER.refresh(WEAPON_LOOKUP, force_download=True)
     await WARFRAME_API.get_median_prices(WEAPON_LOOKUP)
+    WEAPON_LOOKUP.rebuild_weapon_relations()
     info(f"Data Refreshed!")
 
 
@@ -531,13 +532,26 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
         )
         return
 
+    base_weapon = weapon if weapon.is_base_weapon else WEAPON_LOOKUP[weapon.base_weapon]
+
+    weapon_variants = []
+    if base_weapon.weapon_variants:
+        weapon_variants = [WEAPON_LOOKUP[v] for v in base_weapon.weapon_variants] + [
+            base_weapon
+        ]
+        # Dont show the weapon the user is looking up in the list of variants
+        weapon_variants = [
+            w for w in weapon_variants if w.display_name != weapon.display_name
+        ]
+        weapon_variants = sorted(weapon_variants, key=lambda w: w.display_name)
+
     embed = discord.Embed()
     embed.title = weapon.display_name
     embed.url = wiki_data.url
     description = f"**Disposition**: {wiki_data.riven_disposition.symbol} ({wiki_data.riven_disposition.disposition}x)"
-    if weapon.median_plat_price:
+    if base_weapon.median_plat_price:
         emoji = get(interaction.guild.emojis, name="plat")
-        description += f"\n**Median Price**: {weapon.median_plat_price} {emoji if emoji else 'Platinum'}"
+        description += f"\n**Median Price**: {base_weapon.median_plat_price} {emoji if emoji else 'Platinum'}"
     embed.description = description
     embed.set_thumbnail(url=wiki_data.image)
 
@@ -547,8 +561,8 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
         inline=False,
     )
 
-    for i, recommendation in enumerate(weapon.riven_recommendations.stats):
-        if len(weapon.riven_recommendations.stats) > 1:
+    for i, recommendation in enumerate(base_weapon.riven_recommendations.stats):
+        if len(base_weapon.riven_recommendations.stats) > 1:
             embed.add_field(
                 name=f"Recommendation {i+1}",
                 value="",
@@ -557,23 +571,20 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
 
         if recommendation.best:
             best_stats = ", ".join(
-                [effect.render(wiki_data.weapon_type) for effect in recommendation.best]
+                [effect.render(wiki_data.mod_type) for effect in recommendation.best]
             )
             embed.add_field(name="Best", value=best_stats, inline=True)
 
         if recommendation.wanted:
             desired_stats = ", ".join(
-                [
-                    effect.render(wiki_data.weapon_type)
-                    for effect in recommendation.wanted
-                ]
+                [effect.render(wiki_data.mod_type) for effect in recommendation.wanted]
             )
             embed.add_field(name="Desired", value=desired_stats, inline=True)
 
         if recommendation.wanted_negatives:
             negative_stats = ", ".join(
                 [
-                    effect.render(wiki_data.weapon_type)
+                    effect.render(wiki_data.mod_type)
                     for effect in recommendation.wanted_negatives
                 ]
             )
@@ -581,16 +592,23 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
                 name="Harmless Negatives", value=negative_stats, inline=True
             )
 
-    if weapon.riven_recommendations.comment:
+    if base_weapon.riven_recommendations.comment:
         embed.add_field(
             name="Comment",
-            value=weapon.riven_recommendations.comment,
+            value=base_weapon.riven_recommendations.comment,
+            inline=False,
+        )
+
+    if len(weapon_variants) > 0:
+        embed.add_field(
+            name="Weapon Variants",
+            value=f"{', '.join([f'[{w.display_name}]({WARFRAME_WIKI.base_url + w.wiki_url})' for w in weapon_variants])}",
             inline=False,
         )
 
     embed.add_field(
         name="",
-        value=f"[See on Warframe Market]({weapon.get_market_auction_url()})",
+        value=f"[See on Warframe Market]({base_weapon.get_market_auction_url()})",
         inline=False,
     )
 
