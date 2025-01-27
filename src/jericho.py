@@ -539,11 +539,10 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
         weapon_variants = [WEAPON_LOOKUP[v] for v in base_weapon.weapon_variants] + [
             base_weapon
         ]
-        # Dont show the weapon the user is looking up in the list of variants
-        weapon_variants = [
-            w for w in weapon_variants if w.display_name != weapon.display_name
-        ]
-        weapon_variants = sorted(weapon_variants, key=lambda w: w.display_name)
+
+        weapon_variants = sorted(
+            weapon_variants, key=lambda w: (len(w.display_name), w.display_name)
+        )
 
     embed = discord.Embed()
     embed.title = weapon.display_name
@@ -592,17 +591,16 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
                 name="Harmless Negatives", value=negative_stats, inline=True
             )
 
-    if base_weapon.riven_recommendations.comment:
-        embed.add_field(
-            name="Comment",
-            value=base_weapon.riven_recommendations.comment,
-            inline=False,
-        )
+    if len(weapon_variants) > 1:
+        weapon_variants_text = ""
+        for w in weapon_variants:
+            weapon_variants_text += (
+                f"- [{w.display_name}]({WARFRAME_WIKI.base_url + w.wiki_url})\n"
+            )
 
-    if len(weapon_variants) > 0:
         embed.add_field(
-            name="Weapon Variants",
-            value=f"{', '.join([f'[{w.display_name}]({WARFRAME_WIKI.base_url + w.wiki_url})' for w in weapon_variants])}",
+            name=f"Weapon Family: {base_weapon.display_name}",
+            value=weapon_variants_text,
             inline=False,
         )
 

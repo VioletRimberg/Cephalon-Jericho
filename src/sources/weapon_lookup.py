@@ -96,25 +96,28 @@ class WeaponLookup:
         """
         for weapon in self.weapon_lookup.values():
             weapon_name = weapon.normalized_name
-            without_prefix = "_".join(weapon_name.split("_")[1:])
-            without_postfix = "_".join(weapon_name.split("_")[:-1])
+            for splitter in ["_", "-"]:
+                without_prefix = splitter.join(weapon_name.split(splitter)[1:])
+                without_postfix = splitter.join(weapon_name.split(splitter)[:-1])
 
-            for potential_base in [without_prefix, without_postfix]:
-                # Handle weapons without prefixes or postfixes
-                if potential_base == weapon_name:
-                    continue
+                for potential_base in [without_prefix, without_postfix]:
+                    # Handle weapons without prefixes or postfixes
+                    if potential_base == weapon_name:
+                        continue
 
-                # check if the potential_base is in the lookup
-                if potential_base in self.weapon_lookup:
-                    base_weapon = self.weapon_lookup[potential_base]
-                    # link the weapon to the base weapon
-                    weapon.base_weapon = base_weapon.normalized_name
+                    # check if the potential_base is in the lookup
+                    if potential_base in self.weapon_lookup:
+                        base_weapon = self.weapon_lookup[potential_base]
+                        # link the weapon to the base weapon
+                        weapon.base_weapon = base_weapon.normalized_name
 
-                    # set the riven recommendations of the weapon if the base weapon has riven recommendations
-                    if base_weapon.riven_recommendations is not None:
-                        weapon.riven_recommendations = base_weapon.riven_recommendations
+                        # set the riven recommendations of the weapon if the base weapon has riven recommendations
+                        if base_weapon.riven_recommendations is not None:
+                            weapon.riven_recommendations = (
+                                base_weapon.riven_recommendations
+                            )
 
-                    # add the weapon variant to the base weapons variants
-                    if base_weapon.weapon_variants is None:
-                        base_weapon.weapon_variants = []
-                    base_weapon.weapon_variants.append(weapon.normalized_name)
+                        # add the weapon variant to the base weapons variants
+                        if base_weapon.weapon_variants is None:
+                            base_weapon.weapon_variants = []
+                        base_weapon.weapon_variants.append(weapon.normalized_name)

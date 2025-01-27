@@ -108,7 +108,7 @@ class RivenRecommendationProvider:
                     continue
 
             if weapon not in weapon_lookup:
-                logging.error(f"Unknown weapon {weapon} in sheet {sheet_name}")
+                logging.error(f"Unknown weapon `{weapon}` in sheet {sheet_name}")
                 continue
 
             weapon_lookup[weapon].riven_recommendations = RivenRecommendations(
