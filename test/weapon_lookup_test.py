@@ -33,4 +33,4 @@ async def test_relations(real_weapon_lookup):
     assert match.base_weapon == "boltor"
 
     match = real_weapon_lookup["Braton"]
-    assert match.weapon_variants == ["braton_prime", "braton_vandal"]
+    assert match.weapon_variants == ["braton_prime", "braton_vandal", "mk1-braton"]

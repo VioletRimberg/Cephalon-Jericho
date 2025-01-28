@@ -2,6 +2,14 @@ import pytest
 from src.riven_grader import RivenGrader
 from src.model import Riven, RivenEffect
 from src.sources import WarframeWiki
+import pytest_asyncio
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def real_wiki():
+    wiki = WarframeWiki()
+    await wiki.refresh()
+    return wiki
 
 
 def test_is_constructable():
@@ -64,9 +72,7 @@ def test_is_constructable():
     ],
 )
 @pytest.mark.asyncio
-async def test_can_valdiate_valid_riven(riven):
-    wiki = WarframeWiki()
-    await wiki.refresh()
-    riven_grader = RivenGrader(wiki)
+async def test_can_valdiate_valid_riven(riven, real_wiki):
+    riven_grader = RivenGrader(real_wiki)
     result, error = await riven_grader.valdiate(riven)
     assert result
