@@ -5,14 +5,14 @@ from discord import ButtonStyle
 from discord.ui import View
 from discord.app_commands import Choice
 from discord import Interaction
+from discord.utils import get
 import random
 from warframe import WarframeAPI
 from logging import info
 from settings import Settings
 from state import State
 from message_provider import MessageProvider
-from riven_provider import RivenProvider
-from riven_grader import RivenGrader
+from sources import WeaponLookup, WarframeWiki, RivenRecommendationProvider
 
 discord.utils.setup_logging()
 
@@ -21,9 +21,10 @@ STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
 MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
 REGISTERED_USERS: dict[str, str] = {}
-RIVEN_PROVIDER = RivenProvider()
-RIVEN_PROVIDER.from_gsheets()
-RIVEN_GRADER = RivenGrader()
+WEAPON_LOOKUP = WeaponLookup()
+WARFRAME_WIKI = WarframeWiki(weapon_lookup=WEAPON_LOOKUP)
+RIVEN_PROVIDER = RivenRecommendationProvider()
+
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -31,6 +32,22 @@ intents = discord.Intents.default()
 intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+
+
+async def refresh():
+    global WEAPON_LOOKUP
+    global WARFRAME_WIKI
+    global RIVEN_PROVIDER
+
+    info(f"Refreshing Data...")
+    WEAPON_LOOKUP = WeaponLookup()
+    WARFRAME_WIKI = WarframeWiki(weapon_lookup=WEAPON_LOOKUP)
+    await WARFRAME_WIKI.refresh()
+    RIVEN_PROVIDER = RivenRecommendationProvider()
+    await RIVEN_PROVIDER.refresh(WEAPON_LOOKUP, force_download=True)
+    await WARFRAME_API.get_median_prices(WEAPON_LOOKUP)
+    WEAPON_LOOKUP.rebuild_weapon_relations()
+    info(f"Data Refreshed!")
 
 
 @client.event
@@ -47,21 +64,17 @@ async def on_ready():
     info(f"Logged in as {client.user}!")
     info(f"Registered users: {REGISTERED_USERS}")
 
-
-def get_weapon_names():
-    # Access weapon names from RIVEN_PROVIDER's normalized_data
-    weapon_names = [weapon["WEAPON"] for weapon in RIVEN_PROVIDER.normalized_data]
-    return weapon_names
+    await refresh()
 
 
-async def weapon_autocomplete(interaction: Interaction, current: str):
-    weapon_names = get_weapon_names()
-    matching_weapons = [
-        weapon for weapon in weapon_names if current.lower() in weapon.lower()
+async def weapon_autocomplete(
+    interaction: Interaction, current: str, can_have_rivens: bool = False
+):
+    matches = WEAPON_LOOKUP.fuzzy_search(current, n=25, can_have_rivens=can_have_rivens)
+    choices = [
+        Choice(name=weapon.display_name, value=weapon.display_name)
+        for weapon in matches
     ]
-    # limit shown choices to provent errors with discord limits
-    choices = [Choice(name=weapon, value=weapon) for weapon in matching_weapons[:25]]
-
     return choices
 
 
@@ -497,33 +510,112 @@ async def smooch(interaction: discord.Interaction):
 )
 async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
     """Look up riven stats for a given weapon."""
-    weapon_name = weapon_name.strip().lower()
+    if weapon_name not in WEAPON_LOOKUP:
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("WEAPON_NOT_FOUND", weaponname=weapon_name), ephemeral=True
+        )
+        return
 
-    # Search for the weapon in the RivenProvider data
-    for row in RIVEN_PROVIDER.normalized_data:
-        if row["WEAPON"].strip().lower() == weapon_name:
-            best_stats = ", ".join(row["BEST STATS"])
-            desired_stats = ", ".join(row["DESIRED STATS"])
-            negative_stats = (
-                ", ".join(row["NEGATIVE STATS"]) if row["NEGATIVE STATS"] else "None"
-            )
+    weapon = WEAPON_LOOKUP[weapon_name]
+    if not weapon.riven_recommendations:
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("WEAPON_NO_RIVEN", weaponname=weapon.display_name),
+            ephemeral=True,
+        )
+        return
 
-            await interaction.response.send_message(
-                f"**Weapon:** {row['WEAPON']}\n"
-                f"**Best Stats:** {best_stats}\n"
-                f"**Desired Stats:** {desired_stats}\n"
-                f"**Negative Stats:** {negative_stats}"
-            )
-            return
+    wiki_data = await WARFRAME_WIKI.weapon(weapon.normalized_name)
+    if not wiki_data:
+        await interaction.response.send_message(
+            MESSAGE_PROVIDER("WEAPON_NO_WIKI", weaponname=weapon.display_name),
+            ephemeral=True,
+        )
+        return
 
-    await interaction.response.send_message(
-        MESSAGE_PROVIDER("WEAPON_NOT_FOUND", weaponname=weapon_name), ephemeral=True
+    base_weapon = weapon if weapon.is_base_weapon else WEAPON_LOOKUP[weapon.base_weapon]
+
+    weapon_variants = []
+    if base_weapon.weapon_variants:
+        weapon_variants = [WEAPON_LOOKUP[v] for v in base_weapon.weapon_variants] + [
+            base_weapon
+        ]
+
+        weapon_variants = sorted(
+            weapon_variants, key=lambda w: (len(w.display_name), w.display_name)
+        )
+
+    embed = discord.Embed()
+    embed.title = weapon.display_name
+    embed.url = wiki_data.url
+    description = f"**Disposition**: {wiki_data.riven_disposition.symbol} ({wiki_data.riven_disposition.disposition}x)"
+    if base_weapon.median_plat_price:
+        emoji = get(interaction.guild.emojis, name="plat")
+        description += f"\n**Median Price**: {base_weapon.median_plat_price} {emoji if emoji else 'Platinum'}"
+    embed.description = description
+    embed.set_thumbnail(url=wiki_data.image)
+
+    embed.add_field(
+        name="Riven Stats",
+        value="",
+        inline=False,
     )
+
+    for i, recommendation in enumerate(base_weapon.riven_recommendations.stats):
+        if len(base_weapon.riven_recommendations.stats) > 1:
+            embed.add_field(
+                name=f"Recommendation {i+1}",
+                value="",
+                inline=False,
+            )
+
+        if recommendation.best:
+            best_stats = ", ".join(
+                [effect.render(wiki_data.mod_type) for effect in recommendation.best]
+            )
+            embed.add_field(name="Best", value=best_stats, inline=True)
+
+        if recommendation.wanted:
+            desired_stats = ", ".join(
+                [effect.render(wiki_data.mod_type) for effect in recommendation.wanted]
+            )
+            embed.add_field(name="Desired", value=desired_stats, inline=True)
+
+        if recommendation.wanted_negatives:
+            negative_stats = ", ".join(
+                [
+                    effect.render(wiki_data.mod_type)
+                    for effect in recommendation.wanted_negatives
+                ]
+            )
+            embed.add_field(
+                name="Harmless Negatives", value=negative_stats, inline=True
+            )
+
+    if len(weapon_variants) > 1:
+        weapon_variants_text = ""
+        for w in weapon_variants:
+            weapon_variants_text += (
+                f"- [{w.display_name}]({WARFRAME_WIKI.base_url + w.wiki_url})\n"
+            )
+
+        embed.add_field(
+            name=f"Weapon Family: {base_weapon.display_name}",
+            value=weapon_variants_text,
+            inline=False,
+        )
+
+    embed.add_field(
+        name="",
+        value=f"[See on Warframe Market]({base_weapon.get_market_auction_url()})",
+        inline=False,
+    )
+
+    await interaction.response.send_message(embed=embed)
 
 
 @weapon_look_up.autocomplete("weapon_name")
 async def autocomplete_weapon_name(interaction: Interaction, current: str):
-    return await weapon_autocomplete(interaction, current)
+    return await weapon_autocomplete(interaction, current, can_have_rivens=True)
 
 
 # @tree.command(
@@ -714,12 +806,7 @@ async def riven_maintenance(interaction: discord.Interaction):
                 return
 
             # Perform the update
-            global RIVEN_PROVIDER
-            RIVEN_PROVIDER = RivenProvider()
-            RIVEN_PROVIDER.from_gsheets()
-
-            global RIVEN_GRADER
-            RIVEN_GRADER = RivenGrader()
+            await refresh()
 
             info("Riven update completed successfully.")
             await maintenance_message.edit(

@@ -6,6 +6,7 @@ import logging
 from enum import Enum
 import asyncio
 import re
+from sources import WeaponLookup
 from utils.http import HardenedHttpClient, WARFRAME_API_SUCCESS_CODES
 
 
@@ -80,6 +81,23 @@ class WarframeAPI:
         self.client = HardenedHttpClient(
             httpx.AsyncClient(timeout=timeout), success_codes=WARFRAME_API_SUCCESS_CODES
         )  # Initialize the HTTP client
+
+    async def get_median_prices(self, weapon_lookup: WeaponLookup):
+        result = await self.client.get(
+            "https://www-static.warframe.com/repos/weeklyRivensPC.json"
+        )
+        result.raise_for_status()
+        data = result.json()
+        for item in data:
+            if "compatibility" not in item:
+                continue
+            if (
+                item["compatibility"] is None
+                or item["compatibility"] not in weapon_lookup
+            ):
+                continue
+
+            weapon_lookup[item["compatibility"]].median_plat_price = item["median"]
 
     def _parse_profile(self, data: dict, source_platform: Platform) -> Profile:
         profile_data = data["Results"][0]
