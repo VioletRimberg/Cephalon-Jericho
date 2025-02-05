@@ -167,7 +167,9 @@ async def rate_outfit(ctx):
 
 
 @tree.command(
-    name="koumei", description=MESSAGE_PROVIDER("KOUMEI_DESC"), guild=discord.Object(SETTINGS.GUILD_ID)
+    name="koumei",
+    description=MESSAGE_PROVIDER("KOUMEI_DESC"),
+    guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def koumei(ctx):
     random_number = random.randint(1, 6)

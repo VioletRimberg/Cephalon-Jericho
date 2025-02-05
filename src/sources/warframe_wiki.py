@@ -15,7 +15,7 @@ class WarframeWiki:
     def __init__(
         self, weapon_lookup: WeaponLookup = WeaponLookup(), timeout: int = 10_000
     ):
-        self.base_url = "https://warframe.fandom.com"
+        self.base_url = "https://wiki.warframe.com"
         self.client = HardenedHttpClient(
             httpx.AsyncClient(timeout=timeout), success_codes=DEFAULT_SUCCESS_CODES
         )  # Initialize the HTTP client
@@ -36,17 +36,24 @@ class WarframeWiki:
 
         header_contanier = soup.find("h1", id="firstHeading").find("span")
         name = header_contanier.text
-        image_container = soup.find("img", class_="pi-image-thumbnail")
-        image_link = (
-            image_container.attrs["src"]
-            if image_container and "src" in image_container.attrs
-            else None
-        )
+
+        image_span = soup.find("span", class_="main-image")
+        image_link = None
+        if image_span:
+            image_container = image_span.find("img")
+            image_link = (
+                self.base_url + image_container.attrs["src"]
+                if image_container and "src" in image_container.attrs
+                else None
+            )
 
         def extract_data(data_source: str) -> Optional[str]:
-            parent_div = soup.find("div", attrs={"data-source": data_source})
-            if parent_div:
-                return parent_div.find("div", class_="pi-data-value pi-font").text
+            link_a = soup.find("a", text=data_source)
+            if link_a:
+                row = link_a.find_parent("div").find_parent("div")
+                value_column = row.find("div", class_="value")
+                if value_column:
+                    return value_column.text
             return None
 
         raw_disposition = extract_data("Disposition")
@@ -59,14 +66,13 @@ class WarframeWiki:
             )
         else:
             disposition = RivenDisposition()
-        weapon_type = extract_data("Class")
+        weapon_type = extract_data("Type")
         slot = extract_data("Slot")
-        raw_mastery = extract_data("Mastery")
+        raw_mastery = extract_data("Mastery Rank Requirement")
         if raw_mastery:
             mastery = int(raw_mastery)
         else:
             mastery = None
-            #
         mod_type = WeaponModType.from_raw_data(slot, weapon_type)
 
         return Weapon(
@@ -91,11 +97,11 @@ class WarframeWiki:
         """
         Refresh the wiki data
         """
-        weapon_base_url = f"{self.base_url}/wiki/Weapons#Primary"
+        weapon_base_url = f"{self.base_url}/w/Weapons#Primary"
         response = await self.client.get(weapon_base_url)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, features="html.parser")
-        table = soup.find("div", class_="wds-tab__content wds-is-current")
+        table = soup.find("div", class_="tabber")
         if table:
             weapons = table.find_all("span", style="border-bottom:2px dotted; color:;")
             for weapon in weapons:
@@ -106,11 +112,11 @@ class WarframeWiki:
                     )
 
         # Manually add the kitgun chambers since they are not in the weapon list
-        self.weapon_lookup.add("Catchmoon", "/wiki/Catchmoon")
-        self.weapon_lookup.add("Gaze", "/wiki/Gaze")
-        self.weapon_lookup.add("Rattleguts", "/wiki/Rattleguts")
-        self.weapon_lookup.add("Sporelacer", "/wiki/Sporelacer")
-        self.weapon_lookup.add("Tombfinger", "/wiki/Tombfinger")
-        self.weapon_lookup.add("Vermisplicer", "/wiki/Vermisplicer")
+        self.weapon_lookup.add("Catchmoon", "/w/Catchmoon")
+        self.weapon_lookup.add("Gaze", "/w/Gaze")
+        self.weapon_lookup.add("Rattleguts", "/w/Rattleguts")
+        self.weapon_lookup.add("Sporelacer", "/w/Sporelacer")
+        self.weapon_lookup.add("Tombfinger", "/w/Tombfinger")
+        self.weapon_lookup.add("Vermisplicer", "/w/Vermisplicer")
         # Ok no idea why this isnt in the weapon list but we need to add it
-        self.weapon_lookup.add("Dark Split-Sword", "/wiki/Dark_Split-Sword")
+        self.weapon_lookup.add("Dark Split-Sword", "/w/Dark_Split-Sword")
