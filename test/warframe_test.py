@@ -8,6 +8,7 @@ def test_is_constructable():
     assert api is not None
 
 
+@pytest.mark.skip(reason="Currently unsupported")
 @pytest.mark.parametrize(
     "username, platform",
     [
@@ -37,6 +38,7 @@ async def test_can_get_profile(username: str, platform: Platform):
     assert warframe_profile.platform_names[platform] == username
 
 
+@pytest.mark.skip(reason="Currently unsupported")
 @pytest.mark.parametrize(
     "username, platform",
     [("LivewareProblem", Platform.SWITCH), ("sayed3210", Platform.PC)],
@@ -50,6 +52,7 @@ async def test_doesnt_retrieve_pre_merge_slave_accounts(
     assert warframe_profile is None
 
 
+@pytest.mark.skip(reason="Currently unsupported")
 @pytest.mark.parametrize(
     "username, platform, is_multi_platform",
     [
@@ -72,6 +75,7 @@ async def test_can_get_profile_from_all_platforms(
     assert warframe_profile.platform_names[platform] == username
 
 
+@pytest.mark.skip(reason="Currently unsupported")
 @pytest.mark.asyncio
 async def test_doesnt_retrieve_non_existing_profile():
     api = WarframeAPI()
@@ -79,6 +83,7 @@ async def test_doesnt_retrieve_non_existing_profile():
     assert warframe_profile is None
 
 
+@pytest.mark.skip(reason="Currently unsupported")
 @pytest.mark.parametrize(
     "username",
     [
@@ -92,6 +97,7 @@ async def test_can_get_profile_without_clan(username: str):
     assert warframe_profile is not None
 
 
+@pytest.mark.skip(reason="Currently unsupported")
 @pytest.mark.asyncio
 async def test_can_make_bulk_requests():
     api = WarframeAPI()

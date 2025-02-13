@@ -48,7 +48,7 @@ class WarframeWiki:
             )
 
         def extract_data(data_source: str) -> Optional[str]:
-            link_a = soup.find("a", text=data_source)
+            link_a = soup.find("a", string=data_source)
             if link_a:
                 row = link_a.find_parent("div").find_parent("div")
                 value_column = row.find("div", class_="value")

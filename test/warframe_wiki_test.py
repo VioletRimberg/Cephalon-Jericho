@@ -57,13 +57,16 @@ async def test_weapon_not_found(real_wiki):
 
 @pytest.mark.skip(reason="Takes too long to run")
 @pytest.mark.asyncio
-async def test_all_weapons():
-    wiki = WarframeWiki()
-    await wiki.refresh()
+async def test_all_weapons(real_wiki):
     matches = 0
-    for weapon_name in wiki.weapon_lookup.keys():
-        weapon = await wiki.weapon(weapon_name)
+    for weapon_name in real_wiki.weapon_lookup.weapon_lookup.keys():
+        try:
+            weapon = await real_wiki.weapon(weapon_name)
+        except Exception:
+            print(f"Failed to get weapon: {weapon_name}")  # yareli
         assert weapon is not None
-        match = wiki._clean_weapon_name(weapon.name).startswith(weapon_name)
+        match = real_wiki.weapon_lookup._normalize_weapon_name(weapon.name).startswith(
+            weapon_name
+        )
         matches += int(match)
-    print(f"Matched {matches} out of {len(wiki.weapon_lookup)} weapons")
+    print(f"Matched {matches} out of {len(real_wiki.weapon_lookup)} weapons")
