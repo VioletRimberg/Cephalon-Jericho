@@ -1,4 +1,3 @@
-import pytest
 from src.message_provider import MessageProvider, MessageEntry
 import random
 

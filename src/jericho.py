@@ -39,7 +39,7 @@ async def refresh():
     global WARFRAME_WIKI
     global RIVEN_PROVIDER
 
-    info(f"Refreshing Data...")
+    info("Refreshing Data...")
     WEAPON_LOOKUP = WeaponLookup()
     WARFRAME_WIKI = WarframeWiki(weapon_lookup=WEAPON_LOOKUP)
     await WARFRAME_WIKI.refresh()
@@ -47,7 +47,7 @@ async def refresh():
     await RIVEN_PROVIDER.refresh(WEAPON_LOOKUP, force_download=True)
     await WARFRAME_API.get_median_prices(WEAPON_LOOKUP)
     WEAPON_LOOKUP.rebuild_weapon_relations()
-    info(f"Data Refreshed!")
+    info("Data Refreshed!")
 
 
 @client.event
@@ -167,7 +167,9 @@ async def rate_outfit(ctx):
 
 
 @tree.command(
-    name="koumei", description=MESSAGE_PROVIDER("KOUMEI_DESC"), guild=discord.Object(SETTINGS.GUILD_ID)
+    name="koumei",
+    description=MESSAGE_PROVIDER("KOUMEI_DESC"),
+    guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def koumei(ctx):
     random_number = random.randint(1, 6)
