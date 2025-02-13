@@ -101,7 +101,7 @@ class WarframeWiki:
         response = await self.client.get(weapon_base_url)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, features="html.parser")
-        table = soup.find("div", class_="tabber")
+        table = soup.find("div", class_="tabbertab")
         if table:
             weapons = table.find_all("span", style="border-bottom:2px dotted; color:;")
             for weapon in weapons:
