@@ -1,5 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel
 
+class Role(BaseModel):
+    name: str
+    id: int
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -10,9 +14,6 @@ class Settings(BaseSettings):
 
     # The ID of the Discord guild (server) the bot will operate in
     GUILD_ID: int
-
-    # The name of the clan associated with the bot
-    CLAN_NAME: str
 
     # The ID of the channel where reports will be sent
     REPORT_CHANNEL_ID: int
@@ -28,3 +29,8 @@ class Settings(BaseSettings):
 
     # The URL assigned to the Message Provider
     MESSAGE_PROVIDER_URL: str = "https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit"
+
+    # Possible Roles per Clan for the onboarding process
+    CLAN_ROLES: dict[str, list[Role]] = {"Golden Tenno": [Role(name="Member", id=0)]}
+
+

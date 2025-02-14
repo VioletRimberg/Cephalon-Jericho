@@ -192,42 +192,6 @@ async def koumei(ctx):
             )
         )
 
-
-@tree.command(
-    name="profile",
-    description=MESSAGE_PROVIDER("PROFILE_DESC"),
-    guild=discord.Object(SETTINGS.GUILD_ID),
-)
-async def profile(ctx: discord.Interaction, username: str):
-    # Create a placeholder message to show that we are looking up the operator
-    await ctx.response.send_message(
-        MESSAGE_PROVIDER("PROFILE_SEARCH", user=username), ephemeral=True
-    )
-    # Make a request to the Warframe API to get the profile of the operator
-    result = await WARFRAME_API.get_profile_all_platforms(username)
-    if result:
-        profile = result
-        if profile.clan == SETTINGS.CLAN_NAME:
-            await ctx.edit_original_response(
-                content=MESSAGE_PROVIDER(
-                    "PROFILE_GT",
-                    profile=profile,
-                )
-            )
-        else:
-            await ctx.edit_original_response(
-                content=MESSAGE_PROVIDER(
-                    "PROFILE_OTHER",
-                    profile=profile,
-                )
-            )
-    else:
-        # If the operator is not found, send a message to the user
-        await ctx.edit_original_response(
-            content=MESSAGE_PROVIDER("PROFILE_MISSING", user=username)
-        )
-
-
 # Writing a report Modal
 class ReportModal(ui.Modal, title="Record and Archive Notes"):
     # unlike what i originally had, i need to set input windows woopsies
@@ -347,7 +311,14 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
             style=discord.TextStyle.short,
             placeholder="Input Warframe username here.",
         )
+        self.clan_input = ui.Select(
+            options=[
+                discord.components.SelectOption(label=clan, value=clan, default=True) 
+                for clan in SETTINGS.CLAN_ROLES.keys()
+            ]
+        )
         self.add_item(self.title_input)
+        self.add_item(self.clan_input)
 
     async def on_submit(self, interaction: discord.Interaction):
         global REGISTERED_USERS
