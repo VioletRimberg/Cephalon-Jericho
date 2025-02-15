@@ -311,14 +311,7 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
             style=discord.TextStyle.short,
             placeholder="Input Warframe username here.",
         )
-        self.clan_input = ui.Select(
-            options=[
-                discord.components.SelectOption(label=clan, value=clan, default=True) 
-                for clan in SETTINGS.CLAN_ROLES.keys()
-            ]
-        )
         self.add_item(self.title_input)
-        self.add_item(self.clan_input)
 
     async def on_submit(self, interaction: discord.Interaction):
         global REGISTERED_USERS
@@ -374,6 +367,25 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
             )
 
 
+class ClanDropdown(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Golden Tenno", description="Live sucks"),
+            discord.SelectOption(label="Kavat Raiders", description="Cait is cool"),
+            discord.SelectOption(label="Guest", description="No Clan")
+        ]
+
+        super().__init__(placeholder="Choose your Clan", options=options, min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"Selected: {self.values}")
+
+
+class RoleView2(View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(ClanDropdown())
+
 class RoleView(View):
     def __init__(self, *, timeout=180):
         super().__init__(timeout=timeout)
@@ -404,7 +416,7 @@ class RoleView(View):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def role(interaction: discord.Interaction):
-    view = RoleView()
+    view = RoleView2()
     await interaction.response.send_message(
         MESSAGE_PROVIDER("ROLE_INIT"),
         view=view,
