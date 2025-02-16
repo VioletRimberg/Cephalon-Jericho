@@ -4,7 +4,13 @@ from pydantic import BaseModel
 
 class Role(BaseModel):
     name: str
-    id: int
+    ids: list[int]
+
+
+class Clan(BaseModel):
+    name: str
+    description: str
+    roles: list[Role]
 
 
 class Settings(BaseSettings):
@@ -26,6 +32,9 @@ class Settings(BaseSettings):
     # The ID of the role assigned to guests
     GUEST_ROLE_ID: int
 
+    # Display name of the guest rank
+    GUEST_NAME: str = "Guest"
+
     # The ID of the maintenance role assigned to administration
     MAINTENANCE_ROLE_ID: int
 
@@ -33,4 +42,10 @@ class Settings(BaseSettings):
     MESSAGE_PROVIDER_URL: str = "https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit"
 
     # Possible Roles per Clan for the onboarding process
-    CLAN_ROLES: dict[str, list[Role]] = {"Golden Tenno": [Role(name="Member", id=0)]}
+    CLANS: list[Clan] = [
+        Clan(
+            name="Golden Tenno",
+            description="Join Golden Tenno",
+            roles=[Role(name="Daimo", ids=[12]), Role(name="Shogun", ids=[1, 0])],
+        )
+    ]

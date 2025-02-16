@@ -9,7 +9,7 @@ from discord.utils import get
 import random
 from warframe import WarframeAPI
 from logging import info
-from settings import Settings
+from settings import Settings, Clan, Role
 from state import State
 from message_provider import MessageProvider
 from sources import WeaponLookup, WarframeWiki, RivenRecommendationProvider
@@ -293,9 +293,62 @@ async def absence_command(interaction: discord.Interaction):
     await interaction.response.send_modal(modal)
 
 
+class RoleDeclineButton(ui.Button):
+    def __init__(self, user: discord.User):
+        super().__init__(label="Decline")
+        self.user = user
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=False)
+        await self.user.send(content="Your application was declined")
+        await interaction.edit_original_response(
+            content=f"User `{self.user.name}` was declined.", view=None
+        )
+
+
+class RoleAssignButton(ui.Button):
+    def __init__(self, user: discord.User, role: Role):
+        super().__init__(label=role.name, style=ButtonStyle.primary)
+        self.user = user
+        self.role = role
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=False)
+
+        guild = interaction.guild
+        roles = []
+        for role_id in self.role.ids:
+            guild_role = await guild.get_role(role_id)
+            if guild_role:
+                roles.append(guild_role)
+
+        await self.user.add_roles(roles)
+        await self.user.send(
+            content=f"The `{self.role.name}` role was assigned to you."
+        )
+
+        await interaction.edit_original_response(
+            content=f"User `{self.user.name}` was accepted as `{self.role}`", view=None
+        )
+
+
+class AssignRoleView(ui.View):
+    def __init__(self, user: discord.User, clan: Clan):
+        super().__init__()
+        self.assign_buttons = []
+        for role in clan.roles:
+            button = RoleAssignButton(user, role)
+            self.assign_buttons.append(button)
+            self.add_item(button)
+
+        self.decline = RoleDeclineButton(user)
+        self.add_item(self.decline)
+
+
 class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
-    def __init__(self):
+    def __init__(self, clan: Clan):
         super().__init__(title="Confirm Clan Membership")
+        self.clan = clan
         self.title_input = ui.TextInput(
             label="Warframe Username",
             style=discord.TextStyle.short,
@@ -306,85 +359,84 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
     async def on_submit(self, interaction: discord.Interaction):
         # we need to prevent the timeoutTM, otherwise its re-adding original message again
         await interaction.response.defer(ephemeral=True)
-        originalname = self.title_input.value
-        username = self.title_input.value.lower().replace(" ", "")
+        warframe_name = self.title_input.value.strip()
         guild = interaction.guild
+        channel = guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
         member = interaction.user
 
-        profile = await WARFRAME_API.get_profile_all_platforms(username)
-
-        if profile:
-            if profile.clan == SETTINGS.CLAN_NAME:
-                role = guild.get_role(SETTINGS.MEMBER_ROLE_ID)
-                await member.add_roles(role)
-                await member.edit(nick=originalname)
-                await interaction.followup.send(
-                    MESSAGE_PROVIDER("ROLE_REGISTERED", user=originalname),
-                    ephemeral=True,
-                )
-
-            else:
-                await interaction.followup.send(
-                    MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=originalname),
-                    ephemeral=True,
-                )
-
-        else:
-            # If the operator is not found, send a message to the user
-            await interaction.followup.send(
-                MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=originalname), ephemeral=True
+        if not warframe_name or len(warframe_name) == 0:
+            await interaction.edit_original_response(
+                content=MESSAGE_PROVIDER("ROLE_NOT_FOUND", user=warframe_name),
+                view=None,
             )
+            return
 
-        async def on_error(self, interaction: discord.Interaction, error: Exception):
-            await interaction.response.send_message(
-                MESSAGE_PROVIDER("ROLE_ERROR", error=error), ephemeral=True
-            )
+        await channel.send(
+            content=f"Discord user `{member.name}` wants to register for clan `{self.clan.name}` with username `{warframe_name}`.",
+            view=AssignRoleView(user=member, clan=self.clan),
+        )
+
+        # assign guest in the meantime
+        role = guild.get_role(SETTINGS.GUEST_ROLE_ID)
+        await member.add_roles(role)
+
+        # Send message to user
+        await interaction.edit_original_response(
+            content=MESSAGE_PROVIDER("ROLE_REGISTERED", user=warframe_name), view=None
+        )
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        await interaction.edit_original_response(
+            content=MESSAGE_PROVIDER("ROLE_ERROR", error=error), view=None
+        )
 
 
 class ClanDropdown(discord.ui.Select):
     def __init__(self):
-        options = [
-            discord.SelectOption(label="Golden Tenno", description="Live sucks"),
-            discord.SelectOption(label="Kavat Raiders", description="Cait is cool"),
-            discord.SelectOption(label="Guest", description="No Clan"),
-        ]
-
+        options = []
+        for clan in SETTINGS.CLANS:
+            options.append(
+                discord.SelectOption(
+                    label=clan.name, value=clan.name, description=clan.description
+                )
+            )
+        options.append(
+            discord.SelectOption(
+                label=SETTINGS.GUEST_NAME,
+                value=SETTINGS.GUEST_NAME,
+                description="Join the server as a guest",
+            )
+        )
         super().__init__(
             placeholder="Choose your Clan", options=options, min_values=1, max_values=1
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"Selected: {self.values}")
+        try:
+            selection = self.values[0]
+            if selection == SETTINGS.GUEST_NAME:
+                guild = interaction.guild
+                role = guild.get_role(SETTINGS.GUEST_ROLE_ID)
+                member = interaction.user
+                await member.add_roles(role)
+                await interaction.response.edit_message(
+                    content=MESSAGE_PROVIDER("ROLE_GUEST"), view=None
+                )
+            else:
+                clan = [c for c in SETTINGS.CLANS if c.name == selection][0]
+                modal = ProfileModal(clan)
+                await interaction.response.send_modal(modal)
 
-
-class RoleView2(View):
-    def __init__(self):
-        super().__init__()
-        self.add_item(ClanDropdown())
+        except Exception as e:
+            await interaction.response.send_message(
+                MESSAGE_PROVIDER("ROLE_ERROR", error=e), ephemeral=True
+            )
 
 
 class RoleView(View):
-    def __init__(self, *, timeout=180):
-        super().__init__(timeout=timeout)
-
-    @discord.ui.button(label="Clan Member", style=ButtonStyle.primary)
-    async def confirm_user_member(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        modal = ProfileModal()
-        await interaction.response.send_modal(modal)
-
-    @discord.ui.button(label="Guest", style=ButtonStyle.secondary)
-    async def assign_guest(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        guild = interaction.guild
-        role = guild.get_role(SETTINGS.GUEST_ROLE_ID)
-        member = interaction.user
-        await member.add_roles(role)
-        await interaction.response.send_message(
-            MESSAGE_PROVIDER("ROLE_GUEST"), ephemeral=True
-        )
+    def __init__(self):
+        super().__init__()
+        self.add_item(ClanDropdown())
 
 
 @tree.command(
@@ -393,7 +445,7 @@ class RoleView(View):
     guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def role(interaction: discord.Interaction):
-    view = RoleView2()
+    view = RoleView()
     await interaction.response.send_message(
         MESSAGE_PROVIDER("ROLE_INIT"),
         view=view,
