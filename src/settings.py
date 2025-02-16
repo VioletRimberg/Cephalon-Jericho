@@ -46,6 +46,6 @@ class Settings(BaseSettings):
         Clan(
             name="Golden Tenno",
             description="Join Golden Tenno",
-            roles=[Role(name="Daimo", ids=[12]), Role(name="Shogun", ids=[1, 0])],
+            roles=[Role(name="Member", ids=[1308470226085744670])],
         )
     ]

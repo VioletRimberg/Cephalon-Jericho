@@ -316,13 +316,11 @@ class RoleAssignButton(ui.Button):
         await interaction.response.defer(thinking=False)
 
         guild = interaction.guild
-        roles = []
         for role_id in self.role.ids:
-            guild_role = await guild.get_role(role_id)
+            guild_role = guild.get_role(role_id)
             if guild_role:
-                roles.append(guild_role)
+                await self.user.add_roles(guild_role)
 
-        await self.user.add_roles(roles)
         await self.user.send(
             content=f"The `{self.role.name}` role was assigned to you."
         )
@@ -334,7 +332,7 @@ class RoleAssignButton(ui.Button):
 
 class AssignRoleView(ui.View):
     def __init__(self, user: discord.User, clan: Clan):
-        super().__init__()
+        super().__init__(timeout=None)
         self.assign_buttons = []
         for role in clan.roles:
             button = RoleAssignButton(user, role)
