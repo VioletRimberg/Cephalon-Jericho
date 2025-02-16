@@ -20,7 +20,6 @@ SETTINGS = Settings()
 STATE: State = State.load()
 WARFRAME_API = WarframeAPI()
 MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.MESSAGE_PROVIDER_URL)
-REGISTERED_USERS: dict[str, str] = {}
 WEAPON_LOOKUP = WeaponLookup()
 WARFRAME_WIKI = WarframeWiki(weapon_lookup=WEAPON_LOOKUP)
 RIVEN_PROVIDER = RivenRecommendationProvider()
@@ -53,17 +52,7 @@ async def refresh():
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=SETTINGS.GUILD_ID))
-    guild = client.get_guild(SETTINGS.GUILD_ID)
-    members = guild.members
-    for member in members:
-        for role in member.roles:
-            if role.id == SETTINGS.MEMBER_ROLE_ID:
-                REGISTERED_USERS[member.display_name.lower()] = member.name
-                break
-
     info(f"Logged in as {client.user}!")
-    info(f"Registered users: {REGISTERED_USERS}")
-
     await refresh()
 
 
@@ -192,6 +181,7 @@ async def koumei(ctx):
             )
         )
 
+
 # Writing a report Modal
 class ReportModal(ui.Modal, title="Record and Archive Notes"):
     # unlike what i originally had, i need to set input windows woopsies
@@ -314,24 +304,12 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
         self.add_item(self.title_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        global REGISTERED_USERS
         # we need to prevent the timeoutTM, otherwise its re-adding original message again
         await interaction.response.defer(ephemeral=True)
         originalname = self.title_input.value
         username = self.title_input.value.lower().replace(" ", "")
         guild = interaction.guild
         member = interaction.user
-
-        if username in REGISTERED_USERS:
-            previously_registered_user = REGISTERED_USERS[username]
-            info(
-                f"user {interaction.user.name} tried to claim {username} which is already registered to {previously_registered_user}"
-            )
-            await interaction.followup.send(
-                MESSAGE_PROVIDER("IMPOSTER", originalname=originalname), ephemeral=True
-            )
-
-            return
 
         profile = await WARFRAME_API.get_profile_all_platforms(username)
 
@@ -340,10 +318,6 @@ class ProfileModal(ui.Modal, title="Confirm Clan Membership"):
                 role = guild.get_role(SETTINGS.MEMBER_ROLE_ID)
                 await member.add_roles(role)
                 await member.edit(nick=originalname)
-                REGISTERED_USERS[username] = interaction.user.name
-                info(
-                    f"Registered Warframe Profile {originalname} to Discord User {interaction.user.name}"
-                )
                 await interaction.followup.send(
                     MESSAGE_PROVIDER("ROLE_REGISTERED", user=originalname),
                     ephemeral=True,
@@ -372,10 +346,12 @@ class ClanDropdown(discord.ui.Select):
         options = [
             discord.SelectOption(label="Golden Tenno", description="Live sucks"),
             discord.SelectOption(label="Kavat Raiders", description="Cait is cool"),
-            discord.SelectOption(label="Guest", description="No Clan")
+            discord.SelectOption(label="Guest", description="No Clan"),
         ]
 
-        super().__init__(placeholder="Choose your Clan", options=options, min_values=1, max_values=1)
+        super().__init__(
+            placeholder="Choose your Clan", options=options, min_values=1, max_values=1
+        )
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_message(f"Selected: {self.values}")
@@ -385,6 +361,7 @@ class RoleView2(View):
     def __init__(self):
         super().__init__()
         self.add_item(ClanDropdown())
+
 
 class RoleView(View):
     def __init__(self, *, timeout=180):

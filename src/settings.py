@@ -1,9 +1,11 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel
 
+
 class Role(BaseModel):
     name: str
     id: int
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -32,5 +34,3 @@ class Settings(BaseSettings):
 
     # Possible Roles per Clan for the onboarding process
     CLAN_ROLES: dict[str, list[Role]] = {"Golden Tenno": [Role(name="Member", id=0)]}
-
-
