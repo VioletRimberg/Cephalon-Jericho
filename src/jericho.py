@@ -165,6 +165,15 @@ async def rate_outfit(ctx):
         MESSAGE_PROVIDER("RATE_OUTFIT", user=ctx.user.display_name)
     )
 
+@tree.command(
+        name = "pet_jericho",
+        description = MESSAGE_PROVIDER("PET_JERICHO_DESC"),
+        guild = discord.Object(SETTINGS.GUILD_ID),
+)
+async def pet_jericho(interaction: discord.Interaction):
+        gif_path = "images/Jericho_Pet.gif"
+        file = discord.File(gif_path, filename="Jericho_Pet.gif")
+        await interaction.response.send_message(content=MESSAGE_PROVIDER("PET_JERICHO", user = interaction.user.display_name), file=file)
 
 @tree.command(
     name="koumei",
