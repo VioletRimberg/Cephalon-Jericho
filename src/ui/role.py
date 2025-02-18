@@ -26,9 +26,13 @@ class RoleDeclineButton(ErrorHandlingButton):
 
     async def _callback(self, interaction: Interaction):
         await interaction.response.defer(thinking=False)
-        await self.user.send(content="Your application was declined")
+        await self.user.send(content=MESSAGE_PROVIDER("ROLE_DECLINE_USER"))
         await interaction.edit_original_response(
-            content=f"User {self.user.mention} was declined for clan {self.clan.name} with the username `{self.wf_name}` by {interaction.user.mention}.",
+            content=MESSAGE_PROVIDER("ROLE_DECLINE_BACKEND", 
+                                     user = self.user.mention, 
+                                     clan = self.clan.name, 
+                                     wfname = self.wf_name, 
+                                     interactionuser = interaction.user.mention),
             view=None,
         )
 
@@ -51,11 +55,19 @@ class RoleAssignButton(ErrorHandlingButton):
                 await self.user.add_roles(guild_role)
 
         await self.user.send(
-            content=f"The `{self.role.name}` role was assigned to you in clan `{self.clan.name}` with username `{self.wf_name} ."
+            content=MESSAGE_PROVIDER("ROLE_ACCEPT_USER", 
+                                     role = self.role.name, 
+                                     clan = self.clan.name, 
+                                     wfname = self.wf_name)
         )
 
         await interaction.edit_original_response(
-            content=f"User {self.user.mention} was accepted with role `{self.role.name}` in clan `{self.clan.name}` with the username `{self.wf_name}` by {interaction.user.mention}",
+            content=MESSAGE_PROVIDER("ROLE_ACCEPT_BACKEND", 
+                                     role = self.role.name, 
+                                     clan = self.clan.name, 
+                                     wfname = self.wf_name,
+                                     user = self.user.mention,
+                                     interactionuser = interaction.user.mention),
             view=None,
         )
 
@@ -100,7 +112,7 @@ class ProfileModal(Modal, title="Confirm Clan Membership"):
             return
 
         await channel.send(
-            content=f"Discord user {member.mention} wants to register for clan `{self.clan.name}` with username `{wf_name}`.",
+            content= MESSAGE_PROVIDER("ROLE_CLAIM", member = member.mention, clan = self.clan.name, wfname = wf_name),
             view=AssignRoleView(user=member, clan=self.clan, wf_name=wf_name),
         )
 
@@ -132,7 +144,7 @@ class ClanDropdown(Select):
             SelectOption(
                 label=SETTINGS.GUEST_NAME,
                 value=SETTINGS.GUEST_NAME,
-                description="Join the server as a guest",
+                description=MESSAGE_PROVIDER("ROLE_JOIN_GUEST"),
             )
         )
         super().__init__(
