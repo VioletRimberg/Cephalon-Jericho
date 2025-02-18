@@ -1,4 +1,5 @@
 import discord
+import time
 from discord import app_commands
 from discord import ui
 from discord import ButtonStyle
@@ -32,7 +33,6 @@ intents = discord.Intents.default()
 intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-
 
 async def refresh():
     global WEAPON_LOOKUP
@@ -165,15 +165,33 @@ async def rate_outfit(ctx):
         MESSAGE_PROVIDER("RATE_OUTFIT", user=ctx.user.display_name)
     )
 
+pet_cooldowns = {}
+COOLDOWN_TIME = 10
+
 @tree.command(
         name = "pet_jericho",
         description = MESSAGE_PROVIDER("PET_JERICHO_DESC"),
         guild = discord.Object(SETTINGS.GUILD_ID),
 )
 async def pet_jericho(interaction: discord.Interaction):
+        
+        user_id = interaction.user.id
+        current_time = time.time()
+
+        if user_id in pet_cooldowns:
+            elapsed_time = current_time - pet_cooldowns[user_id]
+            if elapsed_time < COOLDOWN_TIME:
+                remaining_time = int(COOLDOWN_TIME - elapsed_time)
+                return await interaction.response.send_message(
+                    content=MESSAGE_PROVIDER("PET_JERICHO_TIMEOUT", remainingtime = remaining_time, user = interaction.user.display_name),
+                    ephemeral=True 
+        )
+        pet_cooldowns[user_id] = current_time
+
         gif_path = "images/Jericho_Pet.gif"
         file = discord.File(gif_path, filename="Jericho_Pet.gif")
         await interaction.response.send_message(content=MESSAGE_PROVIDER("PET_JERICHO", user = interaction.user.display_name), file=file)
+
 
 @tree.command(
     name="koumei",
