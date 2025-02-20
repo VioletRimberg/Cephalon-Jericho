@@ -23,7 +23,6 @@ WEAPON_LOOKUP = WeaponLookup()
 WARFRAME_WIKI = WarframeWiki(weapon_lookup=WEAPON_LOOKUP)
 RIVEN_PROVIDER = RivenRecommendationProvider()
 
-
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
 intents = discord.Intents.default()

@@ -28,11 +28,13 @@ class RoleDeclineButton(ErrorHandlingButton):
         await interaction.response.defer(thinking=False)
         await self.user.send(content=MESSAGE_PROVIDER("ROLE_DECLINE_USER"))
         await interaction.edit_original_response(
-            content=MESSAGE_PROVIDER("ROLE_DECLINE_BACKEND", 
-                                     user = self.user.mention, 
-                                     clan = self.clan.name, 
-                                     wfname = self.wf_name, 
-                                     interactionuser = interaction.user.mention),
+            content=MESSAGE_PROVIDER(
+                "ROLE_DECLINE_BACKEND",
+                user=self.user.mention,
+                clan=self.clan.name,
+                wfname=self.wf_name,
+                interactionuser=interaction.user.mention,
+            ),
             view=None,
         )
 
@@ -55,19 +57,23 @@ class RoleAssignButton(ErrorHandlingButton):
                 await self.user.add_roles(guild_role)
 
         await self.user.send(
-            content=MESSAGE_PROVIDER("ROLE_ACCEPT_USER", 
-                                     role = self.role.name, 
-                                     clan = self.clan.name, 
-                                     wfname = self.wf_name)
+            content=MESSAGE_PROVIDER(
+                "ROLE_ACCEPT_USER",
+                role=self.role.name,
+                clan=self.clan.name,
+                wfname=self.wf_name,
+            )
         )
 
         await interaction.edit_original_response(
-            content=MESSAGE_PROVIDER("ROLE_ACCEPT_BACKEND", 
-                                     role = self.role.name, 
-                                     clan = self.clan.name, 
-                                     wfname = self.wf_name,
-                                     user = self.user.mention,
-                                     interactionuser = interaction.user.mention),
+            content=MESSAGE_PROVIDER(
+                "ROLE_ACCEPT_BACKEND",
+                role=self.role.name,
+                clan=self.clan.name,
+                wfname=self.wf_name,
+                user=self.user.mention,
+                interactionuser=interaction.user.mention,
+            ),
             view=None,
         )
 
@@ -101,7 +107,7 @@ class ProfileModal(Modal, title="Confirm Clan Membership"):
         await interaction.response.defer(ephemeral=True)
         wf_name = self.title_input.value.strip()
         guild = interaction.guild
-        channel = guild.get_channel(SETTINGS.REPORT_CHANNEL_ID)
+        channel = guild.get_channel(self.clan.channel)
         member = interaction.user
 
         if not wf_name or len(wf_name) == 0:
@@ -112,7 +118,9 @@ class ProfileModal(Modal, title="Confirm Clan Membership"):
             return
 
         await channel.send(
-            content= MESSAGE_PROVIDER("ROLE_CLAIM", member = member.mention, clan = self.clan.name, wfname = wf_name),
+            content=MESSAGE_PROVIDER(
+                "ROLE_CLAIM", member=member.mention, clan=self.clan.name, wfname=wf_name
+            ),
             view=AssignRoleView(user=member, clan=self.clan, wf_name=wf_name),
         )
 

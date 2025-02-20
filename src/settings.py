@@ -10,6 +10,7 @@ class Role(BaseModel):
 class Clan(BaseModel):
     name: str
     description: str
+    channel: int
     roles: list[Role]
 
 
@@ -46,6 +47,7 @@ class Settings(BaseSettings):
         Clan(
             name="Golden Tenno",
             description="Join Golden Tenno",
+            channel=1308466222282575944,
             roles=[Role(name="Member", ids=[1308470226085744670])],
         )
     ]
