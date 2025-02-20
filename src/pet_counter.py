@@ -27,25 +27,26 @@ def get_pet_count(user_id: str) -> int:
     return 0  # User not found
 
 def update_pet_count(user_id: str):
-    sheet = get_pet_sheet()  # Replace with your function to access the sheet
-
-    # Fetch all data from the sheet
+    sheet = get_pet_sheet() 
     data = sheet.get_all_records()
 
-    # Find the user row
+    user_id = str(user_id)  # Convert user ID to string for consistent matching
+    global_count_cell = sheet.cell(2, 3).value  
+
+    global_count = int(global_count_cell) if global_count_cell else 0
+
     for i, row in enumerate(data):
-        if row["User ID"] == user_id:
-            # Update existing user's count
-            new_count = row["Pets"] + 1
-            sheet.update_cell(i + 2, 2, new_count)  # +2 because Google Sheets index starts at 1, and there's a header row
-            global_count = int(sheet.cell(2, 2).value) + 1  # Assuming global count is at B2
-            sheet.update_cell(2, 2, global_count)
+        if str(row["User ID"]) == user_id:  # Compare as strings
+            new_count = int(row["Pet Count"]) + 1
+            sheet.update_cell(i + 2, 2, new_count)  # Update pet count
+            global_count += 1
+            sheet.update_cell(2, 3, global_count)  # Update global count
             return new_count, global_count
 
     # If user is not found, add them
     new_count = 1
-    sheet.append_row([user_id, new_count])
-    global_count = int(sheet.cell(2, 2).value) + 1
-    sheet.update_cell(2, 2, global_count)
-    
+    global_count += 1
+    sheet.append_row([user_id, new_count, ""])  # Append user, new pet count, empty global counter
+    sheet.update_cell(2, 3, global_count)  # Update global counter
+
     return new_count, global_count
