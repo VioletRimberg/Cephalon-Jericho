@@ -27,7 +27,11 @@ REGISTERED_USERS: dict[str, str] = {}
 WEAPON_LOOKUP = WeaponLookup()
 WARFRAME_WIKI = WarframeWiki(weapon_lookup=WEAPON_LOOKUP)
 RIVEN_PROVIDER = RivenRecommendationProvider()
+PERSONAL_MILESTONES = [10, 25, 50]
+GLOBAL_MILESTONES = [50, 100, 250, 500]
 
+pet_cooldowns = {}
+COOLDOWN_TIME = 10
 
 info(f"Starting {STATE.deathcounter} iteration of Cephalon Jericho")
 
@@ -167,9 +171,6 @@ async def rate_outfit(ctx):
         MESSAGE_PROVIDER("RATE_OUTFIT", user=ctx.user.display_name)
     )
 
-pet_cooldowns = {}
-COOLDOWN_TIME = 10
-
 @tree.command(
     name="pet_jericho",
     description=MESSAGE_PROVIDER("PET_JERICHO_DESC"),
@@ -179,7 +180,8 @@ async def pet_jericho(interaction: discord.Interaction):
     user_id = interaction.user.id
     current_time = time.time()
 
-    await interaction.response.defer()  
+    await interaction.response.defer()
+    
     # Cooldown Check
     if user_id in pet_cooldowns:
         elapsed_time = current_time - pet_cooldowns[user_id]
@@ -197,7 +199,19 @@ async def pet_jericho(interaction: discord.Interaction):
     # Update pet counters
     user_pets, global_pets = update_pet_count(user_id)
 
-    # Send response with counters
+    # Check for milestone messages using MESSAGE_PROVIDER
+    personal_message = (MESSAGE_PROVIDER(f"PET_JERICHO_PERSONAL_{user_pets}", 
+                                         user=interaction.user.display_name) 
+                        if user_pets in PERSONAL_MILESTONES else "")
+
+    global_message = (MESSAGE_PROVIDER(f"PET_JERICHO_GLOBAL_{global_pets}", 
+                                       global_pets=global_pets) 
+                      if global_pets in GLOBAL_MILESTONES else "")
+
+    # Compile messages
+    milestone_message = "\n\n".join(filter(None, [personal_message, global_message]))
+
+    # Send response with counters and milestone messages
     gif_path = "images/Jericho_Pet.gif"
     file = discord.File(gif_path, filename="Jericho_Pet.gif")
     
@@ -205,7 +219,7 @@ async def pet_jericho(interaction: discord.Interaction):
         content=MESSAGE_PROVIDER("PET_JERICHO", 
                                  user=interaction.user.display_name, 
                                  user_pets=user_pets, 
-                                 global_pets=global_pets), 
+                                 global_pets=global_pets) + f"\n\n{milestone_message}",
         file=file
     )
 
