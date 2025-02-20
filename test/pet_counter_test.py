@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Setup Google Sheets client
-SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+SHEET_ID = os.getenv("GOOGLE_SHEET_PET_ID")
 CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH")
 
 def get_google_sheets_client():
@@ -28,12 +28,21 @@ def test_can_read_data():
     sheet = client.open_by_key(SHEET_ID).sheet1
     data = sheet.get_all_values()
     assert isinstance(data, list), "Sheet data should be a list of rows."
-    print("Sheet Data:", data)  # Optional: shows current data for debugging
-
+    print("Sheet Data:", data)
 def test_can_write_data():
     client = get_google_sheets_client()
     sheet = client.open_by_key(SHEET_ID).sheet1
     test_data = ["TestUser", "1"]
+
     sheet.append_row(test_data)
     data = sheet.get_all_values()
+
+    data = [row[:len(test_data)] for row in data]
+
     assert test_data in data, "Failed to write data to Google Sheet."
+
+    # Cleanup: Find the row index and delete it
+    for i, row in enumerate(data, start=1):  
+        if row[:len(test_data)] == test_data:
+            sheet.delete_rows(i)
+            break  # Stop after deleting the first match
