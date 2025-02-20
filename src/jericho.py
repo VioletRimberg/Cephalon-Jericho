@@ -13,7 +13,9 @@ from logging import info
 from settings import Settings
 from state import State
 from message_provider import MessageProvider
+from pet_counter import update_pet_count 
 from sources import WeaponLookup, WarframeWiki, RivenRecommendationProvider
+
 
 discord.utils.setup_logging()
 
@@ -169,29 +171,43 @@ pet_cooldowns = {}
 COOLDOWN_TIME = 10
 
 @tree.command(
-        name = "pet_jericho",
-        description = MESSAGE_PROVIDER("PET_JERICHO_DESC"),
-        guild = discord.Object(SETTINGS.GUILD_ID),
+    name="pet_jericho",
+    description=MESSAGE_PROVIDER("PET_JERICHO_DESC"),
+    guild=discord.Object(SETTINGS.GUILD_ID),
 )
 async def pet_jericho(interaction: discord.Interaction):
-        
-        user_id = interaction.user.id
-        current_time = time.time()
+    user_id = interaction.user.id
+    current_time = time.time()
 
-        if user_id in pet_cooldowns:
-            elapsed_time = current_time - pet_cooldowns[user_id]
-            if elapsed_time < COOLDOWN_TIME:
-                remaining_time = int(COOLDOWN_TIME - elapsed_time)
-                return await interaction.response.send_message(
-                    content=MESSAGE_PROVIDER("PET_JERICHO_TIMEOUT", remainingtime = remaining_time, user = interaction.user.display_name),
-                    ephemeral=True 
-        )
-        pet_cooldowns[user_id] = current_time
+    await interaction.response.defer()  
+    # Cooldown Check
+    if user_id in pet_cooldowns:
+        elapsed_time = current_time - pet_cooldowns[user_id]
+        if elapsed_time < COOLDOWN_TIME:
+            remaining_time = int(COOLDOWN_TIME - elapsed_time)
+            return await interaction.followup.send(
+                content=MESSAGE_PROVIDER("PET_JERICHO_TIMEOUT", 
+                                         remainingtime=remaining_time, 
+                                         user=interaction.user.display_name),
+                ephemeral=True
+            )
+    
+    pet_cooldowns[user_id] = current_time
 
-        gif_path = "images/Jericho_Pet.gif"
-        file = discord.File(gif_path, filename="Jericho_Pet.gif")
-        await interaction.response.send_message(content=MESSAGE_PROVIDER("PET_JERICHO", user = interaction.user.display_name), file=file)
+    # Update pet counters
+    user_pets, global_pets = update_pet_count(user_id)
 
+    # Send response with counters
+    gif_path = "images/Jericho_Pet.gif"
+    file = discord.File(gif_path, filename="Jericho_Pet.gif")
+    
+    await interaction.followup.send(
+        content=MESSAGE_PROVIDER("PET_JERICHO", 
+                                 user=interaction.user.display_name, 
+                                 user_pets=user_pets, 
+                                 global_pets=global_pets), 
+        file=file
+    )
 
 @tree.command(
     name="koumei",
