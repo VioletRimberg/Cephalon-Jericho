@@ -1,6 +1,7 @@
 *.csv
 .env*
 state.json
+jericho_service.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

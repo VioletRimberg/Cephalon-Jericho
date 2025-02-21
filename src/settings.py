@@ -51,3 +51,8 @@ class Settings(BaseSettings):
             roles=[Role(name="Member", ids=[1308470226085744670])],
         )
     ]
+    # The Google Credentials Path
+    GOOGLE_CREDENTIALS_PATH: str
+
+    #The Google Pet Sheet ID
+    GOOGLE_SHEET_PET_ID: str
