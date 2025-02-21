@@ -1,4 +1,17 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel
+
+
+class Role(BaseModel):
+    name: str
+    ids: list[int]
+
+
+class Clan(BaseModel):
+    name: str
+    description: str
+    channel: int
+    roles: list[Role]
 
 
 class Settings(BaseSettings):
@@ -11,9 +24,6 @@ class Settings(BaseSettings):
     # The ID of the Discord guild (server) the bot will operate in
     GUILD_ID: int
 
-    # The name of the clan associated with the bot
-    CLAN_NAME: str
-
     # The ID of the channel where reports will be sent
     REPORT_CHANNEL_ID: int
 
@@ -23,12 +33,24 @@ class Settings(BaseSettings):
     # The ID of the role assigned to guests
     GUEST_ROLE_ID: int
 
+    # Display name of the guest rank
+    GUEST_NAME: str = "Guest"
+
     # The ID of the maintenance role assigned to administration
     MAINTENANCE_ROLE_ID: int
 
     # The URL assigned to the Message Provider
     MESSAGE_PROVIDER_URL: str = "https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit"
 
+    # Possible Roles per Clan for the onboarding process
+    CLANS: list[Clan] = [
+        Clan(
+            name="Golden Tenno",
+            description="Join Golden Tenno",
+            channel=1308466222282575944,
+            roles=[Role(name="Member", ids=[1308470226085744670])],
+        )
+    ]
     # The Google Credentials Path
     GOOGLE_CREDENTIALS_PATH: str
 
