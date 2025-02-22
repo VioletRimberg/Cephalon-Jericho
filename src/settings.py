@@ -51,5 +51,10 @@ class Settings(BaseSettings):
     # The Google Credentials Path
     GOOGLE_CREDENTIALS: dict[str, str]
 
-    # The Google Pet Sheet ID
+    #The Google Pet Sheet ID
     GOOGLE_SHEET_PET_ID: str
+
+    #Milestones for pet function
+    PERSONAL_MILESTONES: list[int] = [10, 25, 50]
+    GLOBAL_MILESTONES: list[int] = [50, 100, 250, 500]
+    
