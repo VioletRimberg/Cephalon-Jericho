@@ -13,7 +13,7 @@ import random
 from warframe import WarframeAPI
 from logging import info
 from message_provider import MessageProvider
-from pet_counter import update_pet_count 
+from pet_counter import update_pet_count
 from sources import WeaponLookup, WarframeWiki, RivenRecommendationProvider
 
 from ui import RoleView
@@ -24,8 +24,7 @@ WARFRAME_API = WarframeAPI()
 WEAPON_LOOKUP = WeaponLookup()
 WARFRAME_WIKI = WarframeWiki(weapon_lookup=WEAPON_LOOKUP)
 RIVEN_PROVIDER = RivenRecommendationProvider()
-PERSONAL_MILESTONES = [10, 25, 50]
-GLOBAL_MILESTONES = [50, 100, 250, 500]
+
 
 pet_cooldowns = {}
 COOLDOWN_TIME = 10
@@ -36,6 +35,7 @@ intents = discord.Intents.default()
 intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+
 
 async def refresh():
     global WEAPON_LOOKUP
@@ -158,6 +158,7 @@ async def rate_outfit(ctx):
         MESSAGE_PROVIDER("RATE_OUTFIT", user=ctx.user.display_name)
     )
 
+
 @tree.command(
     name="pet_jericho",
     description=MESSAGE_PROVIDER("PET_JERICHO_DESC"),
@@ -168,32 +169,40 @@ async def pet_jericho(interaction: discord.Interaction):
     current_time = time.time()
 
     await interaction.response.defer()
-    
+
     # Cooldown Check
     if user_id in pet_cooldowns:
         elapsed_time = current_time - pet_cooldowns[user_id]
         if elapsed_time < COOLDOWN_TIME:
             remaining_time = int(COOLDOWN_TIME - elapsed_time)
             return await interaction.followup.send(
-                content=MESSAGE_PROVIDER("PET_JERICHO_TIMEOUT", 
-                                         remainingtime=remaining_time, 
-                                         user=interaction.user.display_name),
-                ephemeral=True
+                content=MESSAGE_PROVIDER(
+                    "PET_JERICHO_TIMEOUT",
+                    remainingtime=remaining_time,
+                    user=interaction.user.display_name,
+                ),
+                ephemeral=True,
             )
-    
+
     pet_cooldowns[user_id] = current_time
 
     # Update pet counters
     user_pets, global_pets = update_pet_count(user_id)
 
     # Check for milestone messages using MESSAGE_PROVIDER
-    personal_message = (MESSAGE_PROVIDER(f"PET_JERICHO_PERSONAL_{user_pets}", 
-                                         user=interaction.user.display_name) 
-                        if user_pets in PERSONAL_MILESTONES else "")
+    personal_message = (
+        MESSAGE_PROVIDER(
+            f"PET_JERICHO_PERSONAL_{user_pets}", user=interaction.user.display_name
+        )
+        if user_pets in SETTINGS.PERSONAL_MILESTONES
+        else ""
+    )
 
-    global_message = (MESSAGE_PROVIDER(f"PET_JERICHO_GLOBAL_{global_pets}", 
-                                       global_pets=global_pets) 
-                      if global_pets in GLOBAL_MILESTONES else "")
+    global_message = (
+        MESSAGE_PROVIDER(f"PET_JERICHO_GLOBAL_{global_pets}", global_pets=global_pets)
+        if global_pets in SETTINGS.GLOBAL_MILESTONES
+        else ""
+    )
 
     # Compile messages
     milestone_message = "\n\n".join(filter(None, [personal_message, global_message]))
@@ -201,14 +210,18 @@ async def pet_jericho(interaction: discord.Interaction):
     # Send response with counters and milestone messages
     gif_path = "images/Jericho_Pet.gif"
     file = discord.File(gif_path, filename="Jericho_Pet.gif")
-    
+
     await interaction.followup.send(
-        content=MESSAGE_PROVIDER("PET_JERICHO", 
-                                 user=interaction.user.display_name, 
-                                 user_pets=user_pets, 
-                                 global_pets=global_pets) + f"\n\n{milestone_message}",
-        file=file
+        content=MESSAGE_PROVIDER(
+            "PET_JERICHO",
+            user=interaction.user.display_name,
+            user_pets=user_pets,
+            global_pets=global_pets,
+        )
+        + f"\n\n{milestone_message}",
+        file=file,
     )
+
 
 @tree.command(
     name="koumei",
@@ -486,7 +499,7 @@ async def weapon_look_up(interaction: discord.Interaction, weapon_name: str):
     for i, recommendation in enumerate(base_weapon.riven_recommendations.stats):
         if len(base_weapon.riven_recommendations.stats) > 1:
             embed.add_field(
-                name=f"Recommendation {i+1}",
+                name=f"Recommendation {i + 1}",
                 value="",
                 inline=False,
             )
