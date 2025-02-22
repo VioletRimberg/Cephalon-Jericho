@@ -12,5 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./src  /app
 
+# Copy the images folder into the container
+COPY src/images /app/images
+
 # Specify the command to run the application
 CMD ["python", "jericho.py"]
