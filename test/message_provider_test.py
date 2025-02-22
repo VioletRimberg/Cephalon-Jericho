@@ -66,9 +66,9 @@ def test_is_constructable_from_gsheet():
         "https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit"
     )
     # assert provider is not None
-    assert (
-        provider is not None
-    ), "Provider could not be constructed from the given sheet."
+    assert provider is not None, (
+        "Provider could not be constructed from the given sheet."
+    )
     assert provider.entries, "No entries were loaded from the sheet."
 
 

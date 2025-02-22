@@ -27,9 +27,6 @@ class Settings(BaseSettings):
     # The ID of the channel where reports will be sent
     REPORT_CHANNEL_ID: int
 
-    # The ID of the role assigned to members of the clan
-    MEMBER_ROLE_ID: int
-
     # The ID of the role assigned to guests
     GUEST_ROLE_ID: int
 
@@ -52,7 +49,7 @@ class Settings(BaseSettings):
         )
     ]
     # The Google Credentials Path
-    GOOGLE_CREDENTIALS_PATH: str
+    GOOGLE_CREDENTIALS: dict[str, str]
 
-    #The Google Pet Sheet ID
+    # The Google Pet Sheet ID
     GOOGLE_SHEET_PET_ID: str
