@@ -141,7 +141,7 @@ class ProfileModal(Modal, title="Confirm Clan Membership"):
             await interaction.user.send(MESSAGE_PROVIDER("ROLE_REGISTERED", user=wf_name))
         except Forbidden:
             dm_failed = True  # Track that DM failed
-            print(f"User {member.display_name} has DMs disabled. Logging this in reports.")
+            print(f"User {member.display_name} has DMs disabled.")
 
         await channel.send(
             content=MESSAGE_PROVIDER(
