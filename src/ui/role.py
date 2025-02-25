@@ -157,6 +157,11 @@ class ProfileModal(Modal, title="Confirm Clan Membership"):
         role = guild.get_role(SETTINGS.GUEST_ROLE_ID)
         await member.add_roles(role)
 
+        await interaction.edit_original_response(
+        content=MESSAGE_PROVIDER("ROLE_REGISTERED", user=wf_name),
+        view=None
+        )
+
     async def on_error(self, interaction: Interaction, error: Exception):
         print(f"Unexpected error in ProfileModal: {repr(error)}")
         if interaction.response.is_done():
