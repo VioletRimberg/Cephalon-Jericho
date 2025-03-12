@@ -59,32 +59,53 @@ class RoleAssignButton(ErrorHandlingButton):
     async def _callback(self, interaction: Interaction):
         await interaction.response.defer(thinking=False)
         guild = interaction.guild
+        member = guild.get_member(self.user.id) 
 
+        if not member:
+            await interaction.followup.send(
+                MESSAGE_PROVIDER("ROLE_ASSIGN_FAILED", user=self.user.mention),
+                ephemeral=True,
+            )
+            return
+
+        # Assign new role(s)
         for role_id in self.role.ids:
             guild_role = guild.get_role(role_id)
             if guild_role:
                 try:
-                    await self.user.add_roles(guild_role)
+                    await member.add_roles(guild_role)
                 except Forbidden:
                     await interaction.followup.send(
                         MESSAGE_PROVIDER("ROLE_ASSIGN_FAILED", user=self.user.mention),
                         ephemeral=True,
                     )
                     return
-        
-    
-            try:
-                await self.user.send(
-                    MESSAGE_PROVIDER(
-                        "ROLE_ACCEPT_USER",
-                        role=self.role.name,
-                        clan=self.clan.name,
-                        wfname=self.wf_name,
-                    )
-                )
-            except Forbidden:
-                pass
 
+        # Remove the guest role
+        guest_role = guild.get_role(SETTINGS.GUEST_ROLE_ID)
+        if guest_role and guest_role in member.roles:
+            try:
+                await member.remove_roles(guest_role)
+            except Forbidden:
+                await interaction.followup.send(
+                    MESSAGE_PROVIDER("ROLE_REMOVE_FAILED", user=self.user.mention),
+                    ephemeral=True,
+                )
+
+        # Send DM confirmation
+        try:
+            await member.send(
+                MESSAGE_PROVIDER(
+                    "ROLE_ACCEPT_USER",
+                    role=self.role.name,
+                    clan=self.clan.name,
+                    wfname=self.wf_name,
+                )
+            )
+        except Forbidden:
+            pass  #DM failed, catching 403
+
+        # Edit the original message
         await interaction.edit_original_response(
             content=MESSAGE_PROVIDER(
                 "ROLE_ACCEPT_BACKEND",
