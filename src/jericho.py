@@ -116,17 +116,6 @@ async def hello(ctx):
 
 
 @tree.command(
-    name="tough_love",
-    description=MESSAGE_PROVIDER("TOUGH_LOVE_DESC"),
-    guild=discord.Object(SETTINGS.GUILD_ID),
-)
-async def tough_love(ctx):
-    await ctx.response.send_message(
-        MESSAGE_PROVIDER("TOUGH_LOVE", user=ctx.user.display_name)
-    )
-
-
-@tree.command(
     name="feeling_lost",
     description=MESSAGE_PROVIDER("LOST_DESC"),
     guild=discord.Object(SETTINGS.GUILD_ID),
