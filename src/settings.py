@@ -36,16 +36,15 @@ class Settings(BaseSettings):
     # The ID of the maintenance role assigned to administration
     MAINTENANCE_ROLE_ID: int
 
-    # The URL assigned to the Message Provider
-    MESSAGE_PROVIDER_URL: str = "https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit"
+    MESSAGE_PROVIDER_URL: str
 
     # Possible Roles per Clan for the onboarding process
     CLANS: list[Clan] = [
         Clan(
-            name="Golden Tenno",
-            description="Join Golden Tenno",
-            channel=1308466222282575944,
-            roles=[Role(name="Member", ids=[1308470226085744670])],
+            name="Fractus Vitrum",
+            description="Join Fractus Vitrum",
+            channel=1363427533009457262,
+            roles=[Role(name="Member", ids=[1363422761074298943])],
         )
     ]
     # The Google Credentials Path
@@ -53,6 +52,9 @@ class Settings(BaseSettings):
 
     #The Google Pet Sheet ID
     GOOGLE_SHEET_PET_ID: str
+
+    #The Message Provider Sheet ID
+    GOOGLE_SHEET_MESSAGEPROVIDER_ID: str
 
     #Milestones for pet function
     PERSONAL_MILESTONES: list[int] = [10, 25, 50]
