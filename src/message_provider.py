@@ -32,7 +32,7 @@ class MessageProvider:
         return provider
 
     @classmethod
-    def from_gsheets(cls, sheet_id: str, worksheet_name: str = "Sheet1") -> "MessageProvider":
+    def from_gsheets(cls, sheet_id: str, worksheet_name: str = "message_list") -> "MessageProvider":
         settings = Settings()
         creds = Credentials.from_service_account_info(
             settings.GOOGLE_CREDENTIALS, scopes=["https://www.googleapis.com/auth/spreadsheets"]
