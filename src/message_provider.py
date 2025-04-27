@@ -2,14 +2,14 @@ from dataclasses import dataclass
 from jinja2 import Environment
 import random
 import csv
-import httpx
-
+import gspread
+from google.oauth2.service_account import Credentials
+from settings import Settings
 
 @dataclass
 class MessageEntry:
     message: str
     weight: int
-
 
 class MessageProvider:
     entries: dict[str, list[MessageEntry]]
@@ -29,27 +29,26 @@ class MessageProvider:
                 message = row[1]
                 weight = int(row[2])
                 provider.add(key, MessageEntry(message, weight))
-
         return provider
 
     @classmethod
-    def from_gsheets(cls, url: str) -> "MessageProvider":
-        csv_url = url.replace("/edit", "/export?format=csv")
-        response = httpx.get(csv_url, follow_redirects=True)
+    def from_gsheets(cls, sheet_id: str, worksheet_name: str = "Sheet1") -> "MessageProvider":
+        settings = Settings()
+        creds = Credentials.from_service_account_info(
+            settings.GOOGLE_CREDENTIALS, scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        client = gspread.authorize(creds)
 
-        if response.status_code != 200:
-            raise Exception(f"Failed to fetch CSV data: {response.status_code}")
+        spreadsheet = client.open_by_key(sheet_id)
+        worksheet = spreadsheet.worksheet(worksheet_name)
+        csv_content = worksheet.get_all_values()
 
-        csv_content = response.text.splitlines()
-        reader = csv.reader(csv_content)
         provider = cls()
 
-        next(reader)
-        for row in reader:
+        for row in csv_content[1:]:  # Skip header
             key = row[0]
             message = row[1]
             weight = int(row[2])
-            # I swear to god linebreaks
             message_with_linebreaks = message.replace(r"\n", "\n")
             provider.add(key, MessageEntry(message_with_linebreaks, weight))
 

@@ -36,8 +36,7 @@ class Settings(BaseSettings):
     # The ID of the maintenance role assigned to administration
     MAINTENANCE_ROLE_ID: int
 
-    # The URL assigned to the Message Provider
-    MESSAGE_PROVIDER_URL: str = "https://docs.google.com/spreadsheets/d/1-UUJIz0-0A0OCO4ShtYi5iYPkTVWypbZzlpAfWCz60o/edit"
+    MESSAGE_PROVIDER_URL: str
 
     # Possible Roles per Clan for the onboarding process
     CLANS: list[Clan] = [
@@ -53,6 +52,9 @@ class Settings(BaseSettings):
 
     #The Google Pet Sheet ID
     GOOGLE_SHEET_PET_ID: str
+
+    #The Message Provider Sheet ID
+    GOOGLE_SHEET_MESSAGEPROVIDER_ID: str
 
     #Milestones for pet function
     PERSONAL_MILESTONES: list[int] = [10, 25, 50]
