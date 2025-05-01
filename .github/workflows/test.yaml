@@ -12,33 +12,33 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # Moved Secrets to not fuck up the google cred one.
+    env:
+      DISCORD_TOKEN:   ${{ secrets.DISCORD_TOKEN }}
+      GUILD_ID:        ${{ secrets.GUILD_ID }}
+      REPORT_CHANNEL_ID:         ${{ secrets.REPORT_CHANNEL_ID }}
+      GUEST_ROLE_ID:             ${{ secrets.GUEST_ROLE_ID }}
+      MAINTENANCE_ROLE_ID:       ${{ secrets.MAINTENANCE_ROLE_ID }}
+      MESSAGE_PROVIDER_URL:      ${{ secrets.MESSAGE_PROVIDER_URL }}
+      GOOGLE_CREDENTIALS:        ${{ secrets.GOOGLE_CREDENTIALS }}
+      GOOGLE_SHEET_PET_ID:       ${{ secrets.GOOGLE_SHEET_PET_ID }}
+      GOOGLE_SHEET_MESSAGEPROVIDER_ID: ${{ secrets.GOOGLE_SHEET_MESSAGEPROVIDER_ID }}
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest pytest-asyncio
-        pip install -r requirements.txt
-    
-    - name: Set environment variables
-      run: |
-          echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> $GITHUB_ENV
-          echo "GUILD_ID=${{ secrets.GUILD_ID }}" >> $GITHUB_ENV
-          echo "REPORT_CHANNEL_ID=${{ secrets.REPORT_CHANNEL_ID }}" >> $GITHUB_ENV
-          echo "GUEST_ROLE_ID=${{ secrets.GUEST_ROLE_ID }}" >> $GITHUB_ENV
-          echo "MAINTENANCE_ROLE_ID=${{ secrets.MAINTENANCE_ROLE_ID }}" >> $GITHUB_ENV
-          echo "MESSAGE_PROVIDER_URL=${{ secrets.MESSAGE_PROVIDER_URL }}" >> $GITHUB_ENV
-          echo "GOOGLE_CREDENTIALS=${{ secrets.GOOGLE_CREDENTIALS }}" >> $GITHUB_ENV
-          echo "GOOGLE_SHEET_PET_ID=${{ secrets.GOOGLE_SHEET_PET_ID }}" >> $GITHUB_ENV
-          echo "GOOGLE_SHEET_MESSAGEPROVIDER_ID=${{ secrets.GOOGLE_SHEET_MESSAGEPROVIDER_ID }}" >> $GITHUB_ENV
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio
+          pip install -r requirements.txt
 
-    - name: Run tests
-      run: |
-        pytest
+      - name: Run tests
+        run: |
+          pytest
