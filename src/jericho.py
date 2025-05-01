@@ -694,7 +694,6 @@ async def text_maintenance(interaction: discord.Interaction):
 
         except Exception as e:
             info(f"Refresh failed with error: {e}")
-            # ⚠️ direct response, not followup
             await interaction.response.send_message(
                 MESSAGE_PROVIDER("MAINTENANCE_ERROR", error=e), ephemeral=True
             )

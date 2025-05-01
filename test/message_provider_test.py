@@ -63,7 +63,7 @@ def test_is_constructable_from_csv():
 
 def test_is_constructable_from_gsheet():
     provider = MessageProvider.from_gsheets(
-        "https://docs.google.com/spreadsheets/d/1iIcJkWBY898qGPhkQ3GcLlj1KOkgjlWxWkmiHkzDuzk/edit"
+        "1-UUJIz0-0A0OCO4ShtYi5iYPkTVWypbZzlpAfWCz60o"
     )
     # assert provider is not None
     assert provider is not None, (
