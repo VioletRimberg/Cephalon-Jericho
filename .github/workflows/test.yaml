@@ -28,7 +28,7 @@ jobs:
         pip install -r requirements.txt
     
     - name: Set environment variables
-        run: |
+      run: |
           echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> $GITHUB_ENV
           echo "GUILD_ID=${{ secrets.GUILD_ID }}" >> $GITHUB_ENV
           echo "REPORT_CHANNEL_ID=${{ secrets.REPORT_CHANNEL_ID }}" >> $GITHUB_ENV
