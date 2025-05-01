@@ -408,14 +408,14 @@ class SmoochView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES"))
+        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES", user=interaction.user.display_name))
 
     @discord.ui.button(label="YES!!", style=ButtonStyle.secondary)
     async def smooch_jericho_harder(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES"))
+        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES", user=interaction.user.display_name))
 
 
 @tree.command(
@@ -684,19 +684,17 @@ async def text_maintenance(interaction: discord.Interaction):
     if any(role.id == SETTINGS.MAINTENANCE_ROLE_ID for role in interaction.user.roles):
         try:
             global MESSAGE_PROVIDER
-            MESSAGE_PROVIDER = MessageProvider.from_gsheets(
-                SETTINGS.MESSAGE_PROVIDER_URL
-            )
-            info(f"User {interaction.user.name} attempted to refresh google sheet data")
+            MESSAGE_PROVIDER = MessageProvider.from_gsheets(SETTINGS.GOOGLE_SHEET_MESSAGEPROVIDER_ID)
             await interaction.response.send_message(
                 MESSAGE_PROVIDER("MAINTENANCE_INI"), ephemeral=True
             )
             await interaction.followup.send(
                 MESSAGE_PROVIDER("MAINTENANCE_SUCCESS"), ephemeral=True
             )
+
         except Exception as e:
             info(f"Refresh failed with error: {e}")
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 MESSAGE_PROVIDER("MAINTENANCE_ERROR", error=e), ephemeral=True
             )
     else:
