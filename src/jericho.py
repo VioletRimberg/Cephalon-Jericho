@@ -408,14 +408,14 @@ class SmoochView(View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES"))
+        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES", user=interaction.user.display_name))
 
     @discord.ui.button(label="YES!!", style=ButtonStyle.secondary)
     async def smooch_jericho_harder(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         global STATE
-        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES"))
+        await interaction.response.send_message(MESSAGE_PROVIDER("SMOOCH_YES", user=interaction.user.display_name))
 
 
 @tree.command(
