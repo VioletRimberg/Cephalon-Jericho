@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     CLANS: list[Clan] = [
         Clan(
             name="Fractus Vitrum",
-            description="Join Fractus Vitrum",
+            description="Join the server as a Fractus Vitrum clan member.",
             channel=1363427533009457262,
             roles=[Role(name="Member", ids=[1363422761074298943])],
         )

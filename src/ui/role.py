@@ -211,7 +211,7 @@ class ClanDropdown(Select):
             )
         )
         super().__init__(
-            placeholder="Choose your Clan", options=options, min_values=1, max_values=1
+            placeholder="Choose your role", options=options, min_values=1, max_values=1
         )
 
     async def callback(self, interaction: Interaction):
