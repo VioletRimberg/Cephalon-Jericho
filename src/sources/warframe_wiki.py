@@ -96,19 +96,36 @@ class WarframeWiki:
     async def refresh(self):
         """
         Refresh the wiki data
-        """
+     """
         weapon_base_url = f"{self.base_url}/w/Weapons#Primary"
         response = await self.client.get(weapon_base_url)
         response.raise_for_status()
+
         soup = BeautifulSoup(response.text, features="html.parser")
-        table = soup.find("div", class_="tabbertab")
-        if table:
-            weapons = table.find_all("span", style="border-bottom:2px dotted; color:;")
+
+        # Find every weapon category (Primary, Secondary, Melee, Archgun, Robotic, etc.)
+        tables = soup.find_all("div", class_="tabbertab")
+        print(f"Found {len(tables)} weapon tables.")
+
+        for table in tables:
+            weapons = table.find_all(
+                "span",
+                style=lambda s: s and "dotted" in s,
+            )
+
+            print(f"Found {len(weapons)} weapons in tab '{table.get('data-title')}'.")
+
             for weapon in weapons:
                 link = weapon.find_parent("a")
                 if link and "href" in link.attrs:
+                    name = weapon.get_text().replace("\xa0", " ")
+
+                    if "Vinquibus" in name:
+                        print(f"Found Vinquibus: {name} -> {link['href']}")
+
                     self.weapon_lookup.add(
-                        weapon.get_text().replace("\xa0", " "), link["href"]
+                        name,
+                        link["href"],
                     )
 
         # Manually add the kitgun chambers since they are not in the weapon list
@@ -118,5 +135,24 @@ class WarframeWiki:
         self.weapon_lookup.add("Sporelacer", "/w/Sporelacer")
         self.weapon_lookup.add("Tombfinger", "/w/Tombfinger")
         self.weapon_lookup.add("Vermisplicer", "/w/Vermisplicer")
-        # Ok no idea why this isnt in the weapon list but we need to add it
+
+        # Ok no idea why this isn't in the weapon list but we need to add it
         self.weapon_lookup.add("Dark Split-Sword", "/w/Dark_Split-Sword")
+
+        # Debug output - no longer needed, keeping for future issues to check
+        #print(f"Loaded {len(self.weapon_lookup)} weapons from the wiki.")
+
+        #for weapon in [
+            #"Acceltra",
+            #"Aeolak",
+            #"Verglas",
+            #"Sweeper",
+            #"Vulklok",
+            #"Kuva Ayanga",
+        #]:
+            #print(f"{weapon}: {weapon in self.weapon_lookup}")
+        # Debug for Vinquibius
+        
+        #for key in self.weapon_lookup.weapon_lookup:
+            #if "vinquibus" in key:
+                #print(key)
