@@ -5,3 +5,4 @@ pydantic-settings
 Jinja2
 beautifulsoup4
 gspread
+json5
